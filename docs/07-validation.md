@@ -53,7 +53,7 @@ if (!valid) {
 Similar libraries exist for other languages:
 
 - **Python**: `jsonschema`
-- **Java**: `org.everit.json.schema`
+- **Java**: [`org.everit.json.schema`](https://github.com/everit-org/json-schema)
 - **C#**: `Newtonsoft.Json.Schema`
 - **R**: `jsonvalidate`
 
