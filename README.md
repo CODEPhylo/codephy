@@ -1,2 +1,2 @@
 # codephy
-An ontology and tools for describing phylogenetic models
+A portable format for describing phylogenetic models and associated tools.
