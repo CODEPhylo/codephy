@@ -26,8 +26,6 @@ Graphical interfaces offer an intuitive way to construct phylogenetic models by 
 Node-based editors allow users to create random variables and deterministic functions as nodes in a directed graph, with edges representing dependencies. 
 Users can select from a palette of distribution types and functions, configure their parameters through forms, and connect them by drawing edges.
 
-![Example of a node-based editor](https://example.org/node-editor.png)
-
 Key features of effective node-based editors include:
 - Drag-and-drop interface for creating and connecting nodes
 - Property panels for configuring distribution parameters
