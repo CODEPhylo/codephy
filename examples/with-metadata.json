@@ -1,0 +1,132 @@
+{
+  "model": "primate_phylogeny",
+  "codephyVersion": "0.1",
+  
+  "metadata": {
+    "title": "HKY model of primate evolution",
+    "description": "A phylogenetic model using HKY substitution model to analyze primate mtDNA",
+    "authors": [
+      {
+        "name": "Jane Smith",
+        "email": "jsmith@example.edu",
+        "orcid": "0000-0002-1825-0097",
+        "affiliation": "University of Phylogenetics"
+      }
+    ],
+    "created": "2024-02-15T14:30:00Z",
+    "modified": "2024-03-01T09:15:00Z",
+    "version": "1.2",
+    "license": "CC-BY-4.0",
+    "doi": "10.1234/zenodo.1234567",
+    "citations": [
+      {
+        "doi": "10.1093/sysbio/syy032",
+        "text": "Drummond & Bouckaert (2018). Bayesian evolutionary analysis with BEAST."
+      }
+    ],
+    "software": {
+      "name": "ModelBuilder",
+      "version": "2.1.3",
+      "url": "https://example.com/modelbuilder"
+    },
+    "tags": ["primates", "mtDNA", "HKY"]
+  },
+  
+  "provenance": {
+    "parentModels": [
+      {
+        "id": "10.1234/zenodo.1234566",
+        "relationship": "derived-from"
+      }
+    ],
+    "changeLog": [
+      {
+        "version": "1.0",
+        "date": "2024-02-15T14:30:00Z",
+        "author": "Jane Smith",
+        "description": "Initial model creation"
+      },
+      {
+        "version": "1.1",
+        "date": "2024-02-28T10:45:00Z",
+        "author": "John Doe",
+        "description": "Changed prior on kappa parameter from Exponential to LogNormal"
+      },
+      {
+        "version": "1.2",
+        "date": "2024-03-01T09:15:00Z",
+        "author": "Jane Smith",
+        "description": "Added constraint on clock rate"
+      }
+    ],
+    "dataSource": {
+      "id": "10.5061/dryad.abc123",
+      "description": "Primate mtDNA sequences from Jones et al. (2023)",
+      "processingSteps": [
+        "Removed sequences with >10% missing data",
+        "Aligned using MAFFT v7.490"
+      ]
+    }
+  },
+  
+  "randomVariables": {
+    "kappaParam": {
+      "distribution": {
+        "type": "LogNormal",
+        "generates": "REAL",
+        "meanlog": 1.0,
+        "sdlog": 0.5
+      }
+    },
+    "baseFreqParam": {
+      "distribution": {
+        "type": "Dirichlet",
+        "generates": "REAL_VECTOR",
+        "alpha": [5, 5, 5, 5]
+      }
+    },
+    "birthRateParam": {
+      "distribution": {
+        "type": "LogNormal",
+        "generates": "REAL",
+        "meanlog": 1.0,
+        "sdlog": 0.5
+      }
+    },
+    "tree": {
+      "distribution": {
+        "type": "Yule",
+        "generates": "TREE",
+        "parameters": {
+          "birthRate": "birthRateParam"
+        }
+      }
+    },
+    "alignment": {
+      "distribution": {
+        "type": "PhyloCTMC",
+        "generates": "ALIGNMENT",
+        "parameters": {
+          "tree": "tree",
+          "Q": "substitutionModel"
+        }
+      },
+      "observedValue": [
+        {"taxon": "Human", "sequence": "ACGT"},
+        {"taxon": "Chimp", "sequence": "ACGA"},
+        {"taxon": "Gorilla", "sequence": "ACGT"},
+        {"taxon": "Orangutan", "sequence": "ACGA"}
+      ]
+    }
+  },
+  
+  "deterministicFunctions": {
+    "substitutionModel": {
+      "function": "hky",
+      "arguments": {
+        "kappa": "kappaParam",
+        "baseFrequencies": "baseFreqParam"
+      }
+    }
+  }
+}
