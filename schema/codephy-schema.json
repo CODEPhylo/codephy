@@ -1,0 +1,876 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/codephy.schema.json",
+  "title": "Codephy Schema",
+  "description": "A schema for specifying phylogenetic models with random variables, deterministic functions, metadata, and complex priors.",
+  "type": "object",
+
+  "properties": {
+    "codephyVersion": {
+      "type": "string",
+      "description": "The version of the Codephy schema in use (e.g., '1.0', '1.1').",
+      "default": "0.1"
+    },
+
+    "model": {
+      "type": "string",
+      "description": "Optional name/identifier for the model."
+    },
+
+    "metadata": {
+      "type": "object",
+      "description": "Metadata about the model, its authors, and related information.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "A concise name for the model."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed explanation of the model's purpose, assumptions, and scope."
+        },
+        "authors": {
+          "type": "array",
+          "description": "List of contributors to the model specification.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Full name of the author."
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "description": "Contact email address."
+              },
+              "orcid": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$",
+                "description": "ORCID identifier for the author."
+              },
+              "affiliation": {
+                "type": "string",
+                "description": "Author's institutional affiliation."
+              }
+            },
+            "required": ["name"],
+            "additionalProperties": false
+          }
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp indicating when the model was first created."
+        },
+        "modified": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp indicating when the model was last modified."
+        },
+        "version": {
+          "type": "string",
+          "description": "Semantic versioning string for the model itself."
+        },
+        "license": {
+          "type": "string",
+          "description": "The license under which the model is shared (e.g., 'CC-BY-4.0')."
+        },
+        "doi": {
+          "type": "string",
+          "description": "Digital Object Identifier for the model, if deposited in a repository."
+        },
+        "citations": {
+          "type": "array",
+          "description": "References to publications that should be cited when using this model.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "doi": {
+                "type": "string",
+                "description": "DOI for the cited work."
+              },
+              "text": {
+                "type": "string",
+                "description": "Citation text in a standard format."
+              },
+              "url": {
+                "type": "string",
+                "format": "uri",
+                "description": "URL to the cited work."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "software": {
+          "type": "object",
+          "description": "Information about the software used to generate the model specification.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name of the software."
+            },
+            "version": {
+              "type": "string",
+              "description": "Version of the software."
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "URL to the software documentation or repository."
+            }
+          },
+          "required": ["name"],
+          "additionalProperties": false
+        },
+        "tags": {
+          "type": "array",
+          "description": "Keywords for classification and discovery.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "provenance": {
+      "type": "object",
+      "description": "Information tracking the history and derivation of this model.",
+      "properties": {
+        "parentModels": {
+          "type": "array",
+          "description": "Models from which this model is derived.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Identifier (typically DOI) for the parent model."
+              },
+              "relationship": {
+                "type": "string",
+                "enum": ["derived-from", "inspired-by", "extends", "replicates"],
+                "description": "Type of relationship to the parent model."
+              }
+            },
+            "required": ["id", "relationship"],
+            "additionalProperties": false
+          }
+        },
+        "changeLog": {
+          "type": "array",
+          "description": "Record of changes made to the model over time.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "type": "string",
+                "description": "Version associated with this change."
+              },
+              "date": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the change was made."
+              },
+              "author": {
+                "type": "string",
+                "description": "Who made the change."
+              },
+              "description": {
+                "type": "string",
+                "description": "Description of what was changed."
+              }
+            },
+            "required": ["version", "date", "description"],
+            "additionalProperties": false
+          }
+        },
+        "dataSource": {
+          "type": "object",
+          "description": "Information about the data used in this model.",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Identifier (DOI, accession number, etc.) for the data source."
+            },
+            "description": {
+              "type": "string",
+              "description": "Description of the data source."
+            },
+            "processingSteps": {
+              "type": "array",
+              "description": "Steps taken to process raw data before use in this model.",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "constraints": {
+      "type": "array",
+      "description": "Constraints that must be satisfied by the model parameters.",
+      "items": {
+        "type": "object",
+        "oneOf": [
+          {
+            "properties": {
+              "type": { "const": "lessThan" },
+              "left": {
+                "type": "string",
+                "description": "Reference to a variable that should be less than the right."
+              },
+              "right": {
+                "type": "string",
+                "description": "Reference to a variable that should be greater than the left."
+              }
+            },
+            "required": ["type", "left", "right"],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "type": { "const": "greaterThan" },
+              "left": {
+                "type": "string",
+                "description": "Reference to a variable that should be greater than the right."
+              },
+              "right": {
+                "type": "string",
+                "description": "Reference to a variable that should be less than the left."
+              }
+            },
+            "required": ["type", "left", "right"],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "type": { "const": "equals" },
+              "left": {
+                "type": "string",
+                "description": "Reference to a variable that should equal the right."
+              },
+              "right": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "number" }
+                ],
+                "description": "Reference to a variable or constant value that should equal the left."
+              }
+            },
+            "required": ["type", "left", "right"],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "type": { "const": "bounded" },
+              "variable": {
+                "type": "string",
+                "description": "Reference to a variable that should be within bounds."
+              },
+              "lower": {
+                "type": "number",
+                "description": "Lower bound (inclusive)."
+              },
+              "upper": {
+                "type": "number",
+                "description": "Upper bound (inclusive)."
+              }
+            },
+            "required": ["type", "variable", "lower", "upper"],
+            "additionalProperties": false
+          },
+          {
+            "properties": {
+              "type": { "const": "sumTo" },
+              "variables": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "References to variables that should sum to the target value."
+              },
+              "target": {
+                "type": "number",
+                "description": "Target sum value."
+              }
+            },
+            "required": ["type", "variables", "target"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+
+    "randomVariables": {
+      "type": "object",
+      "description": "All random variables, keyed by their names.",
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "$ref": "#/$defs/randomVariable"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "deterministicFunctions": {
+      "type": "object",
+      "description": "All deterministic functions, keyed by their names.",
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "$ref": "#/$defs/deterministicFunction"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+
+  "required": ["randomVariables"],
+  "additionalProperties": false,
+
+  "$defs": {
+    "parameterValue": {
+      "oneOf": [
+        { "type": "number" },
+        { "type": "string" },
+        { "type": "array", "items": { "$ref": "#/$defs/parameterValue" } },
+        {
+          "type": "object",
+          "properties": {
+            "variable": {
+              "type": "string",
+              "description": "Reference to another random variable."
+            }
+          },
+          "required": ["variable"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "expression": {
+              "type": "string",
+              "description": "Mathematical expression combining variables and constants."
+            }
+          },
+          "required": ["expression"],
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "randomVariable": {
+      "type": "object",
+      "description": "A random variable has a distribution, plus optional observed data.",
+      "properties": {
+        "distribution": {
+          "$ref": "#/$defs/distribution"
+        },
+        "observedValue": {
+          "description": "If present, this variable is observed/data. Type depends on 'generates' from its distribution."
+        }
+      },
+      "required": ["distribution"],
+      "additionalProperties": false
+    },
+
+    "deterministicFunction": {
+      "type": "object",
+      "description": "A deterministic function with a function name and arguments referencing other variables.",
+      "properties": {
+        "function": {
+          "type": "string",
+          "description": "The name of the function (e.g., 'hky')."
+        },
+        "arguments": {
+          "type": "object",
+          "description": "A map from argument names to references (strings) to other variables or functions.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "array", "items": { "$ref": "#/$defs/parameterValue" } },
+              {
+                "type": "object",
+                "properties": {
+                  "variable": {
+                    "type": "string",
+                    "description": "Reference to another random variable."
+                  }
+                },
+                "required": ["variable"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "expression": {
+                    "type": "string",
+                    "description": "Mathematical expression combining variables and constants."
+                  }
+                },
+                "required": ["expression"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": ["function", "arguments"],
+      "additionalProperties": false
+    },
+
+    "distribution": {
+      "type": "object",
+      "description": "Specifies the distribution type for a random variable, plus the 'generates' shape.",
+      "oneOf": [
+        {
+          "description": "LogNormal distribution, typically for continuous parameters.",
+          "properties": {
+            "type": { "const": "LogNormal" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL"],
+              "description": "This distribution yields a real-valued random variable."
+            },
+            "meanlog": { "$ref": "#/$defs/parameterValue" },
+            "sdlog": { "$ref": "#/$defs/parameterValue" }
+          },
+          "required": ["type", "generates", "meanlog", "sdlog"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Normal distribution for real-valued parameters.",
+          "properties": {
+            "type": { "const": "Normal" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL"],
+              "description": "Normal distribution yields a real-valued random variable."
+            },
+            "mean": { "$ref": "#/$defs/parameterValue" },
+            "sd": { "$ref": "#/$defs/parameterValue" }
+          },
+          "required": ["type", "generates", "mean", "sd"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Gamma distribution, for continuous parameters (>0).",
+          "properties": {
+            "type": { "const": "Gamma" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL"],
+              "description": "Gamma distribution yields a real-valued (> 0) random variable."
+            },
+            "shape": { "$ref": "#/$defs/parameterValue" },
+            "rate": { "$ref": "#/$defs/parameterValue" }
+          },
+          "required": ["type", "generates", "shape", "rate"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Beta distribution, for a real-valued parameter in (0,1).",
+          "properties": {
+            "type": { "const": "Beta" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL"],
+              "description": "Beta distribution yields a real-valued parameter in (0,1)."
+            },
+            "alpha": { "$ref": "#/$defs/parameterValue" },
+            "beta": { "$ref": "#/$defs/parameterValue" }
+          },
+          "required": ["type", "generates", "alpha", "beta"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Exponential distribution, for rate parameters.",
+          "properties": {
+            "type": { "const": "Exponential" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL"],
+              "description": "Exponential distribution yields a real-valued (> 0) random variable."
+            },
+            "rate": { "$ref": "#/$defs/parameterValue" }
+          },
+          "required": ["type", "generates", "rate"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Uniform distribution, for bounded parameters.",
+          "properties": {
+            "type": { "const": "Uniform" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL"],
+              "description": "Uniform distribution yields a real-valued random variable within bounds."
+            },
+            "lower": { "$ref": "#/$defs/parameterValue" },
+            "upper": { "$ref": "#/$defs/parameterValue" }
+          },
+          "required": ["type", "generates", "lower", "upper"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Dirichlet distribution, e.g., for base frequencies in a multi-category model.",
+          "properties": {
+            "type": { "const": "Dirichlet" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL_VECTOR"],
+              "description": "Dirichlet yields a vector (of dimension = alpha.length) with values in [0,1]."
+            },
+            "alpha": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/parameterValue" },
+              "description": "Concentration parameters (one per category)."
+            }
+          },
+          "required": ["type", "generates", "alpha"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Multivariate Normal distribution for correlated parameters.",
+          "properties": {
+            "type": { "const": "MultivariateNormal" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL_VECTOR"],
+              "description": "MVN yields a vector of real-valued variables."
+            },
+            "mean": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/parameterValue" },
+              "description": "Mean vector."
+            },
+            "covariance": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/parameterValue" }
+              },
+              "description": "Covariance matrix (must be symmetric positive definite)."
+            }
+          },
+          "required": ["type", "generates", "mean", "covariance"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Mixture distribution, e.g., for rate heterogeneity across sites.",
+          "properties": {
+            "type": { "const": "Mixture" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL", "REAL_VECTOR"],
+              "description": "The type of random variable produced by the mixture."
+            },
+            "components": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "distribution": { 
+                    "type": "string",
+                    "description": "The distribution type for this component."
+                  },
+                  "discretization": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["quantile", "mean", "custom"],
+                        "description": "How to discretize the distribution."
+                      },
+                      "categories": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "Number of discrete categories."
+                      },
+                      "values": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "description": "Custom discretization values (required if type is 'custom')."
+                      }
+                    },
+                    "required": ["type"],
+                    "additionalProperties": false
+                  }
+                },
+                "required": ["distribution"],
+                "additionalProperties": true
+              },
+              "description": "The component distributions in the mixture."
+            },
+            "weights": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/parameterValue" },
+              "description": "Weights for each component (must sum to 1.0)."
+            }
+          },
+          "required": ["type", "generates", "components", "weights"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Posterior Approximation, for using results from previous studies as priors.",
+          "properties": {
+            "type": { "const": "PosteriorApproximation" },
+            "generates": {
+              "type": "string",
+              "enum": ["REAL", "REAL_VECTOR"],
+              "description": "The type of random variable produced by the approximation."
+            },
+            "source": {
+              "type": "object",
+              "properties": {
+                "doi": { 
+                  "type": "string",
+                  "description": "DOI of the study providing the posterior." 
+                },
+                "parameter": { 
+                  "type": "string",
+                  "description": "Name of the parameter in the original study." 
+                }
+              },
+              "required": ["doi", "parameter"],
+              "additionalProperties": false
+            },
+            "approximation": {
+              "type": "object",
+              "description": "Distribution used to approximate the posterior."
+            }
+          },
+          "required": ["type", "generates", "source", "approximation"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Yule prior for a tree, referencing a birth rate parameter name.",
+          "properties": {
+            "type": { "const": "Yule" },
+            "generates": {
+              "type": "string",
+              "enum": ["TREE"],
+              "description": "The Yule process generates a tree."
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "birthRate": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "$ref": "#/$defs/parameterValue" }
+                  ],
+                  "description": "Reference to a random variable for the birth rate."
+                }
+              },
+              "required": ["birthRate"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["type", "generates", "parameters"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Birth-Death prior for a tree.",
+          "properties": {
+            "type": { "const": "BirthDeath" },
+            "generates": {
+              "type": "string",
+              "enum": ["TREE"],
+              "description": "The Birth-Death process generates a tree."
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "birthRate": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "$ref": "#/$defs/parameterValue" }
+                  ],
+                  "description": "Reference to a random variable for the birth rate."
+                },
+                "deathRate": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "$ref": "#/$defs/parameterValue" }
+                  ],
+                  "description": "Reference to a random variable for the death rate."
+                },
+                "rootHeight": {
+                  "oneOf": [
+                    { "type": "number" },
+                    { "type": "string" },
+                    { "$ref": "#/$defs/parameterValue" }
+                  ],
+                  "description": "Reference to a random variable or value for the root height."
+                }
+              },
+              "required": ["birthRate", "deathRate"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["type", "generates", "parameters"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Coalescent prior for a tree.",
+          "properties": {
+            "type": { "const": "Coalescent" },
+            "generates": {
+              "type": "string",
+              "enum": ["TREE"],
+              "description": "The Coalescent process generates a tree."
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "populationSize": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "$ref": "#/$defs/parameterValue" }
+                  ],
+                  "description": "Reference to a random variable for the population size."
+                }
+              },
+              "required": ["populationSize"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["type", "generates", "parameters"],
+          "additionalProperties": false
+        },
+        {
+          "description": "Constrained Yule prior for a tree with topological or height constraints.",
+          "properties": {
+            "type": { "const": "ConstrainedYule" },
+            "generates": {
+              "type": "string",
+              "enum": ["TREE"],
+              "description": "The constrained Yule process generates a tree."
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "birthRate": {
+                  "oneOf": [
+                    { "type": "string" },
+                    { "$ref": "#/$defs/parameterValue" }
+                  ],
+                  "description": "Reference to a random variable for the birth rate."
+                },
+                "rootHeight": {
+                  "$ref": "#/$defs/parameterValue",
+                  "description": "Reference to a random variable or value for the tree height."
+                }
+              },
+              "required": ["birthRate"],
+              "additionalProperties": false
+            },
+            "constraints": {
+              "type": "object",
+              "properties": {
+                "topology": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": ["monophyly", "fixed"],
+                      "description": "Type of topological constraint."
+                    },
+                    "taxonSet": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Taxa that should form a monophyletic group."
+                    },
+                    "clade": {
+                      "type": "string",
+                      "description": "Name for the constrained clade (for monophyly)."
+                    },
+                    "newick": {
+                      "type": "string",
+                      "description": "Newick string representation of the fixed topology."
+                    }
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                },
+                "calibrations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "taxonSet": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Taxa defining the calibrated clade."
+                      },
+                      "age": {
+                        "type": "object",
+                        "description": "Age constraint for the clade."
+                      }
+                    },
+                    "required": ["taxonSet", "age"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": ["type", "generates", "parameters"],
+          "additionalProperties": false
+        },
+        {
+          "description": "PhyloCTMC distribution for an alignment, referencing a tree and Q (substitution model).",
+          "properties": {
+            "type": { "const": "PhyloCTMC" },
+            "generates": {
+              "type": "string",
+              "enum": ["ALIGNMENT"],
+              "description": "A PhyloCTMC distribution yields an alignment (sequence data)."
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "tree": {
+                  "type": "string",
+                  "description": "Name of the random variable representing the tree."
+                },
+                "Q": {
+                  "type": "string",
+                  "description": "Name of the deterministic function or variable representing the rate matrix."
+                },
+                "siteRates": {
+                  "type": "string",
+                  "description": "Optional reference to rate heterogeneity across sites."
+                },
+                "branchRates": {
+                  "type": "string",
+                  "description": "Optional reference to rate heterogeneity across branches."
+                },
+                "rate": {
+                  "oneOf": [
+                    { "type": "number" },
+                    { "type": "string" },
+                    { "$ref": "#/$defs/parameterValue" }
+                  ],
+                  "description": "Overall rate multiplier."
+                }
+              },
+              "required": ["tree", "Q"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["type", "generates", "parameters"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}
