@@ -63,7 +63,7 @@ These graphical tools can generate Codephy-compliant JSON behind the scenes, all
 
 ## Domain-specific languages
 
-Domain-specific languages (DSLs) provide a more concise and readable alternative to raw JSON while maintaining programmatic capabilities.
+Domain-specific languages (DSLs) such as [LinguaPhylo (LPhy)](https://linguaphylo.github.io/) provide a more concise and readable alternative to raw JSON while maintaining programmatic capabilities.
 
 ```
 // Example of a potential DSL for Codephy models
