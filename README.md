@@ -55,15 +55,19 @@ To create a Codephy model:
     "kappaParam": {
       "distribution": {
         "type": "LogNormal",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "generates": "REAL",
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "tree": {
       "distribution": {
         "type": "Yule",
+        "generates": "TREE",
         "parameters": {
-          "birthRate": "birthRateParam"
+          "birthRate": { "variable": "birthRateParam" }
         }
       }
     }
@@ -72,13 +76,20 @@ To create a Codephy model:
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam" },
+        "baseFrequencies": { "variable": "baseFreqParam" }
       }
     }
   }
 }
 ```
+
+## Validation Tools
+
+The Codephy repository includes validation tools to ensure models conform to the schema and are semantically valid:
+
+- **Java Validator**: A Java implementation for validating Codephy models
+  - See [validator/java/README.md](validator/java/README.md) for usage instructions
 
 ## Contributing
 

@@ -3,72 +3,87 @@
   "codephyVersion": "0.1",
   
   "randomVariables": {
+
     "kappaParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
+
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
+
     "popSizeMean": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 0.0,
-        "sdlog": 1.0
+        "parameters": {
+          "meanlog": 0.0,
+          "sdlog": 1.0
+        }
       }
     },
+
     "popSizeCV": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": -1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": -1.0,
+          "sdlog": 0.5
+        }
       }
     },
+
     "popSize": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": {
-          "variable": "popSizeMean"
-        },
-        "sdlog": {
-          "expression": "popSizeMean * popSizeCV"
+        "parameters": {
+          "meanlog": { "variable": "popSizeMean" },
+          "sdlog": {
+            "expression": "popSizeMean * popSizeCV"
+          }
         }
       }
     },
+
     "tree": {
       "distribution": {
         "type": "Coalescent",
         "generates": "TREE",
         "parameters": {
-          "populationSize": "popSize"
+          "populationSize": { "variable": "popSize" }
         }
       }
     },
+
     "alignment": {
       "distribution": {
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel" }
         }
       },
       "observedValue": [
-        {"taxon": "Sample1", "sequence": "ACGT"},
-        {"taxon": "Sample2", "sequence": "ACGA"},
-        {"taxon": "Sample3", "sequence": "ACGT"},
-        {"taxon": "Sample4", "sequence": "ACGA"}
+        { "taxon": "Sample1", "sequence": "ACGT" },
+        { "taxon": "Sample2", "sequence": "ACGA" },
+        { "taxon": "Sample3", "sequence": "ACGT" },
+        { "taxon": "Sample4", "sequence": "ACGA" }
       ]
     }
   },
@@ -77,8 +92,8 @@
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam"},
+        "baseFrequencies": { "variable": "baseFreqParam"}
       }
     }
   }

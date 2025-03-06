@@ -87,8 +87,8 @@ Here's an example of a deterministic function representing an HKY substitution m
 "substitutionModel": {
   "function": "hky",
   "arguments": {
-    "kappa": "kappaParam",
-    "baseFrequencies": "baseFreqParam"
+    "kappa": { "variable": "kappaParam" },
+    "baseFrequencies": { "variable": "baseFreqParam" }
   }
 }
 ```
@@ -101,7 +101,7 @@ Deterministic functions can also perform simpler operations like extracting elem
 "birthRate": {
   "function": "vectorElement",
   "arguments": {
-    "vector": "birthDeathParams",
+    "vector": { "variable": "birthDeathParams" },
     "index": 0
   }
 }

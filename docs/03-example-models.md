@@ -1,10 +1,10 @@
 # Example models
 
-This section provides concrete examples of phylogenetic models specified using the Codephy format. These examples progress from simple to more complex, demonstrating how various aspects of phylogenetic models can be represented.
+This section provides concrete examples of phylogenetic models specified using the Codephy format. These examples progress from simple to more complex, demonstrating how various aspects of phylogenetic models can be represented using the revised schema.
 
 ## Basic model with HKY substitution model
 
-Let's start with a minimal but complete phylogenetic model using the HKY (Hasegawa-Kishino-Yano) substitution model:
+Below is a minimal but complete phylogenetic model using the HKY (Hasegawa-Kishino-Yano) substitution model. Notice that each distribution now wraps its parameters inside a `"parameters"` object, and references are expressed with a `"variable"` key.
 
 ```json
 {
@@ -16,23 +16,29 @@ Let's start with a minimal but complete phylogenetic model using the HKY (Hasega
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "birthRateParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "tree": {
@@ -40,7 +46,7 @@ Let's start with a minimal but complete phylogenetic model using the HKY (Hasega
         "type": "Yule",
         "generates": "TREE",
         "parameters": {
-          "birthRate": "birthRateParam"
+          "birthRate": { "variable": "birthRateParam" }
         }
       }
     },
@@ -49,8 +55,8 @@ Let's start with a minimal but complete phylogenetic model using the HKY (Hasega
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel" }
         }
       },
       "observedValue": [
@@ -66,8 +72,8 @@ Let's start with a minimal but complete phylogenetic model using the HKY (Hasega
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam" },
+        "baseFrequencies": { "variable": "baseFreqParam" }
       }
     }
   }
@@ -96,52 +102,58 @@ Next, let's extend the model to include rate heterogeneity across sites using a 
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "gammaShape": {
       "distribution": {
         "type": "Exponential",
         "generates": "REAL",
-        "rate": 1.0
+        "parameters": {
+          "rate": 1.0
+        }
       }
     },
     "birthRateParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "siteRates": {
       "distribution": {
         "type": "Mixture",
         "generates": "REAL_VECTOR",
-        "components": [
-          {
-            "distribution": "Gamma",
-            "shape": {
-              "variable": "gammaShape"
-            },
-            "rate": {
-              "variable": "gammaShape"
-            },
-            "discretization": {
-              "type": "quantile",
-              "categories": 4
+        "parameters": {
+          "components": [
+            {
+              "distribution": "Gamma",
+              "shape": { "variable": "gammaShape" },
+              "rate": { "variable": "gammaShape" },
+              "discretization": {
+                "type": "quantile",
+                "categories": 4
+              }
             }
-          }
-        ],
-        "weights": [1.0]
+          ],
+          "weights": [1.0]
+        }
       }
     },
     "tree": {
@@ -149,7 +161,7 @@ Next, let's extend the model to include rate heterogeneity across sites using a 
         "type": "Yule",
         "generates": "TREE",
         "parameters": {
-          "birthRate": "birthRateParam"
+          "birthRate": { "variable": "birthRateParam" }
         }
       }
     },
@@ -158,9 +170,9 @@ Next, let's extend the model to include rate heterogeneity across sites using a 
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel",
-          "siteRates": "siteRates"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel" },
+          "siteRates": { "variable": "siteRates" }
         }
       },
       "observedValue": [
@@ -176,8 +188,8 @@ Next, let's extend the model to include rate heterogeneity across sites using a 
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam" },
+        "baseFrequencies": { "variable": "baseFreqParam" }
       }
     }
   }
@@ -203,46 +215,58 @@ Now let's create a more complex model with a birth-death tree prior and a relaxe
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "birthRateParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 0.0,
-        "sdlog": 1.0
+        "parameters": {
+          "meanlog": 0.0,
+          "sdlog": 1.0
+        }
       }
     },
     "deathRateParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": -0.5,
-        "sdlog": 1.0
+        "parameters": {
+          "meanlog": -0.5,
+          "sdlog": 1.0
+        }
       }
     },
     "clockRateMean": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": -7.0,
-        "sdlog": 1.0
+        "parameters": {
+          "meanlog": -7.0,
+          "sdlog": 1.0
+        }
       }
     },
     "clockRateSD": {
       "distribution": {
         "type": "Exponential",
         "generates": "REAL",
-        "rate": 3.0
+        "parameters": {
+          "rate": 3.0
+        }
       }
     },
     "tree": {
@@ -250,8 +274,8 @@ Now let's create a more complex model with a birth-death tree prior and a relaxe
         "type": "BirthDeath",
         "generates": "TREE",
         "parameters": {
-          "birthRate": "birthRateParam",
-          "deathRate": "deathRateParam",
+          "birthRate": { "variable": "birthRateParam" },
+          "deathRate": { "variable": "deathRateParam" },
           "rootHeight": 10.0
         }
       }
@@ -260,14 +284,10 @@ Now let's create a more complex model with a birth-death tree prior and a relaxe
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL_VECTOR",
-        "meanlog": {
-          "variable": "clockRateMean"
-        },
-        "sdlog": {
-          "variable": "clockRateSD"
-        },
-        "dimension": {
-          "expression": "getBranchCount(tree)"
+        "parameters": {
+          "meanlog": { "variable": "clockRateMean" },
+          "sdlog": { "variable": "clockRateSD" },
+          "dimension": { "expression": "getBranchCount(tree)" }
         }
       }
     },
@@ -276,9 +296,9 @@ Now let's create a more complex model with a birth-death tree prior and a relaxe
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel",
-          "branchRates": "branchRates"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel" },
+          "branchRates": { "variable": "branchRates" }
         }
       },
       "observedValue": [
@@ -294,8 +314,8 @@ Now let's create a more complex model with a birth-death tree prior and a relaxe
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam" },
+        "baseFrequencies": { "variable": "baseFreqParam" }
       }
     }
   },
@@ -331,54 +351,68 @@ Many analyses involve partitioned data where different regions evolve under diff
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "kappa2": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "baseFreq1": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "baseFreq2": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "birthRateParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "relativeRate1": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 0.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 0.0,
+          "sdlog": 0.5
+        }
       }
     },
     "relativeRate2": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 0.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 0.0,
+          "sdlog": 0.5
+        }
       }
     },
     "tree": {
@@ -386,7 +420,7 @@ Many analyses involve partitioned data where different regions evolve under diff
         "type": "Yule",
         "generates": "TREE",
         "parameters": {
-          "birthRate": "birthRateParam"
+          "birthRate": { "variable": "birthRateParam" }
         }
       }
     },
@@ -395,9 +429,9 @@ Many analyses involve partitioned data where different regions evolve under diff
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel1",
-          "rate": "relativeRate1"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel1" },
+          "rate": { "variable": "relativeRate1" }
         }
       },
       "observedValue": [
@@ -412,9 +446,9 @@ Many analyses involve partitioned data where different regions evolve under diff
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel2",
-          "rate": "relativeRate2"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel2" },
+          "rate": { "variable": "relativeRate2" }
         }
       },
       "observedValue": [
@@ -430,21 +464,24 @@ Many analyses involve partitioned data where different regions evolve under diff
     "substitutionModel1": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappa1",
-        "baseFrequencies": "baseFreq1"
+        "kappa": { "variable": "kappa1" },
+        "baseFrequencies": { "variable": "baseFreq1" }
       }
     },
     "substitutionModel2": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappa2",
-        "baseFrequencies": "baseFreq2"
+        "kappa": { "variable": "kappa2" },
+        "baseFrequencies": { "variable": "baseFreq2" }
       }
     },
     "normalizedRates": {
       "function": "normalize",
       "arguments": {
-        "values": ["relativeRate1", "relativeRate2"]
+        "values": [
+          { "variable": "relativeRate1" },
+          { "variable": "relativeRate2" }
+        ]
       }
     }
   }
@@ -539,23 +576,29 @@ Adding metadata and provenance information enhances a model's reproducibility:
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "birthRateParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "tree": {
@@ -563,7 +606,7 @@ Adding metadata and provenance information enhances a model's reproducibility:
         "type": "Yule",
         "generates": "TREE",
         "parameters": {
-          "birthRate": "birthRateParam"
+          "birthRate": { "variable": "birthRateParam" }
         }
       }
     },
@@ -572,8 +615,8 @@ Adding metadata and provenance information enhances a model's reproducibility:
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel" }
         }
       },
       "observedValue": [
@@ -589,8 +632,8 @@ Adding metadata and provenance information enhances a model's reproducibility:
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam" },
+        "baseFrequencies": { "variable": "baseFreqParam" }
       }
     }
   }
@@ -620,42 +663,48 @@ Here's an example demonstrating hierarchical priors:
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "popSizeMean": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 0.0,
-        "sdlog": 1.0
+        "parameters": {
+          "meanlog": 0.0,
+          "sdlog": 1.0
+        }
       }
     },
     "popSizeCV": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": -1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": -1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "popSize": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": {
-          "variable": "popSizeMean"
-        },
-        "sdlog": {
-          "expression": "popSizeMean * popSizeCV"
+        "parameters": {
+          "meanlog": { "variable": "popSizeMean" },
+          "sdlog": { "expression": "popSizeMean * popSizeCV" }
         }
       }
     },
@@ -664,7 +713,7 @@ Here's an example demonstrating hierarchical priors:
         "type": "Coalescent",
         "generates": "TREE",
         "parameters": {
-          "populationSize": "popSize"
+          "populationSize": { "variable": "popSize" }
         }
       }
     },
@@ -673,8 +722,8 @@ Here's an example demonstrating hierarchical priors:
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel" }
         }
       },
       "observedValue": [
@@ -690,8 +739,8 @@ Here's an example demonstrating hierarchical priors:
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam" },
+        "baseFrequencies": { "variable": "baseFreqParam" }
       }
     }
   }

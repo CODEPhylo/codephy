@@ -438,10 +438,17 @@
               "enum": ["REAL"],
               "description": "This distribution yields a real-valued random variable."
             },
-            "meanlog": { "$ref": "#/$defs/parameterValue" },
-            "sdlog": { "$ref": "#/$defs/parameterValue" }
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "meanlog": { "$ref": "#/$defs/parameterValue" },
+                "sdlog": { "$ref": "#/$defs/parameterValue" }
+              },
+              "required": ["meanlog", "sdlog"],
+              "additionalProperties": false
+            }
           },
-          "required": ["type", "generates", "meanlog", "sdlog"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -453,10 +460,17 @@
               "enum": ["REAL"],
               "description": "Normal distribution yields a real-valued random variable."
             },
-            "mean": { "$ref": "#/$defs/parameterValue" },
-            "sd": { "$ref": "#/$defs/parameterValue" }
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "mean": { "$ref": "#/$defs/parameterValue" },
+                "sd": { "$ref": "#/$defs/parameterValue" }
+              },
+              "required": ["mean", "sd"],
+              "additionalProperties": false
+            }
           },
-          "required": ["type", "generates", "mean", "sd"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -468,10 +482,17 @@
               "enum": ["REAL"],
               "description": "Gamma distribution yields a real-valued (> 0) random variable."
             },
-            "shape": { "$ref": "#/$defs/parameterValue" },
-            "rate": { "$ref": "#/$defs/parameterValue" }
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "shape": { "$ref": "#/$defs/parameterValue" },
+                "rate": { "$ref": "#/$defs/parameterValue" }
+              },
+              "required": ["shape", "rate"],
+              "additionalProperties": false
+            }
           },
-          "required": ["type", "generates", "shape", "rate"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -483,10 +504,17 @@
               "enum": ["REAL"],
               "description": "Beta distribution yields a real-valued parameter in (0,1)."
             },
-            "alpha": { "$ref": "#/$defs/parameterValue" },
-            "beta": { "$ref": "#/$defs/parameterValue" }
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "alpha": { "$ref": "#/$defs/parameterValue" },
+                "beta": { "$ref": "#/$defs/parameterValue" }
+              },
+              "required": ["alpha", "beta"],
+              "additionalProperties": false
+            }
           },
-          "required": ["type", "generates", "alpha", "beta"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -498,9 +526,16 @@
               "enum": ["REAL"],
               "description": "Exponential distribution yields a real-valued (> 0) random variable."
             },
-            "rate": { "$ref": "#/$defs/parameterValue" }
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "rate": { "$ref": "#/$defs/parameterValue" }
+              },
+              "required": ["rate"],
+              "additionalProperties": false
+            }
           },
-          "required": ["type", "generates", "rate"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -512,10 +547,17 @@
               "enum": ["REAL"],
               "description": "Uniform distribution yields a real-valued random variable within bounds."
             },
-            "lower": { "$ref": "#/$defs/parameterValue" },
-            "upper": { "$ref": "#/$defs/parameterValue" }
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "lower": { "$ref": "#/$defs/parameterValue" },
+                "upper": { "$ref": "#/$defs/parameterValue" }
+              },
+              "required": ["lower", "upper"],
+              "additionalProperties": false
+            }
           },
-          "required": ["type", "generates", "lower", "upper"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -527,13 +569,20 @@
               "enum": ["REAL_VECTOR"],
               "description": "Dirichlet yields a vector (of dimension = alpha.length) with values in [0,1]."
             },
-            "alpha": {
-              "type": "array",
-              "items": { "$ref": "#/$defs/parameterValue" },
-              "description": "Concentration parameters (one per category)."
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "alpha": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/parameterValue" },
+                  "description": "Concentration parameters (one per category)."
+                }
+              },
+              "required": ["alpha"],
+              "additionalProperties": false
             }
           },
-          "required": ["type", "generates", "alpha"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -545,21 +594,28 @@
               "enum": ["REAL_VECTOR"],
               "description": "MVN yields a vector of real-valued variables."
             },
-            "mean": {
-              "type": "array",
-              "items": { "$ref": "#/$defs/parameterValue" },
-              "description": "Mean vector."
-            },
-            "covariance": {
-              "type": "array",
-              "items": {
-                "type": "array",
-                "items": { "$ref": "#/$defs/parameterValue" }
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "mean": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/parameterValue" },
+                  "description": "Mean vector."
+                },
+                "covariance": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": { "$ref": "#/$defs/parameterValue" }
+                  },
+                  "description": "Covariance matrix (must be symmetric positive definite)."
+                }
               },
-              "description": "Covariance matrix (must be symmetric positive definite)."
+              "required": ["mean", "covariance"],
+              "additionalProperties": false
             }
           },
-          "required": ["type", "generates", "mean", "covariance"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -571,50 +627,57 @@
               "enum": ["REAL", "REAL_VECTOR"],
               "description": "The type of random variable produced by the mixture."
             },
-            "components": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "distribution": { 
-                    "type": "string",
-                    "description": "The distribution type for this component."
-                  },
-                  "discretization": {
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "components": {
+                  "type": "array",
+                  "items": {
                     "type": "object",
                     "properties": {
-                      "type": {
+                      "distribution": { 
                         "type": "string",
-                        "enum": ["quantile", "mean", "custom"],
-                        "description": "How to discretize the distribution."
+                        "description": "The distribution type for this component."
                       },
-                      "categories": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "description": "Number of discrete categories."
-                      },
-                      "values": {
-                        "type": "array",
-                        "items": { "type": "number" },
-                        "description": "Custom discretization values (required if type is 'custom')."
+                      "discretization": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["quantile", "mean", "custom"],
+                            "description": "How to discretize the distribution."
+                          },
+                          "categories": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Number of discrete categories."
+                          },
+                          "values": {
+                            "type": "array",
+                            "items": { "type": "number" },
+                            "description": "Custom discretization values (required if type is 'custom')."
+                          }
+                        },
+                        "required": ["type"],
+                        "additionalProperties": false
                       }
                     },
-                    "required": ["type"],
-                    "additionalProperties": false
-                  }
+                    "required": ["distribution"],
+                    "additionalProperties": true
+                  },
+                  "description": "The component distributions in the mixture."
                 },
-                "required": ["distribution"],
-                "additionalProperties": true
+                "weights": {
+                  "type": "array",
+                  "items": { "$ref": "#/$defs/parameterValue" },
+                  "description": "Weights for each component (must sum to 1.0)."
+                }
               },
-              "description": "The component distributions in the mixture."
-            },
-            "weights": {
-              "type": "array",
-              "items": { "$ref": "#/$defs/parameterValue" },
-              "description": "Weights for each component (must sum to 1.0)."
+              "required": ["components", "weights"],
+              "additionalProperties": false
             }
           },
-          "required": ["type", "generates", "components", "weights"],
+          "required": ["type", "generates", "parameters"],
           "additionalProperties": false
         },
         {
@@ -626,250 +689,273 @@
               "enum": ["REAL", "REAL_VECTOR"],
               "description": "The type of random variable produced by the approximation."
             },
-            "source": {
-              "type": "object",
-              "properties": {
-                "doi": { 
-                  "type": "string",
-                  "description": "DOI of the study providing the posterior." 
-                },
-                "parameter": { 
-                  "type": "string",
-                  "description": "Name of the parameter in the original study." 
-                }
-              },
-              "required": ["doi", "parameter"],
-              "additionalProperties": false
-            },
-            "approximation": {
-              "type": "object",
-              "description": "Distribution used to approximate the posterior."
-            }
-          },
-          "required": ["type", "generates", "source", "approximation"],
-          "additionalProperties": false
-        },
-        {
-          "description": "Yule prior for a tree, referencing a birth rate parameter name.",
-          "properties": {
-            "type": { "const": "Yule" },
-            "generates": {
-              "type": "string",
-              "enum": ["TREE"],
-              "description": "The Yule process generates a tree."
-            },
             "parameters": {
               "type": "object",
               "properties": {
-                "birthRate": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "$ref": "#/$defs/parameterValue" }
-                  ],
-                  "description": "Reference to a random variable for the birth rate."
-                }
-              },
-              "required": ["birthRate"],
-              "additionalProperties": false
-            }
-          },
-          "required": ["type", "generates", "parameters"],
-          "additionalProperties": false
-        },
-        {
-          "description": "Birth-Death prior for a tree.",
-          "properties": {
-            "type": { "const": "BirthDeath" },
-            "generates": {
-              "type": "string",
-              "enum": ["TREE"],
-              "description": "The Birth-Death process generates a tree."
-            },
-            "parameters": {
-              "type": "object",
-              "properties": {
-                "birthRate": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "$ref": "#/$defs/parameterValue" }
-                  ],
-                  "description": "Reference to a random variable for the birth rate."
-                },
-                "deathRate": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "$ref": "#/$defs/parameterValue" }
-                  ],
-                  "description": "Reference to a random variable for the death rate."
-                },
-                "rootHeight": {
-                  "oneOf": [
-                    { "type": "number" },
-                    { "type": "string" },
-                    { "$ref": "#/$defs/parameterValue" }
-                  ],
-                  "description": "Reference to a random variable or value for the root height."
-                }
-              },
-              "required": ["birthRate", "deathRate"],
-              "additionalProperties": false
-            }
-          },
-          "required": ["type", "generates", "parameters"],
-          "additionalProperties": false
-        },
-        {
-          "description": "Coalescent prior for a tree.",
-          "properties": {
-            "type": { "const": "Coalescent" },
-            "generates": {
-              "type": "string",
-              "enum": ["TREE"],
-              "description": "The Coalescent process generates a tree."
-            },
-            "parameters": {
-              "type": "object",
-              "properties": {
-                "populationSize": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "$ref": "#/$defs/parameterValue" }
-                  ],
-                  "description": "Reference to a random variable for the population size."
-                }
-              },
-              "required": ["populationSize"],
-              "additionalProperties": false
-            }
-          },
-          "required": ["type", "generates", "parameters"],
-          "additionalProperties": false
-        },
-        {
-          "description": "Constrained Yule prior for a tree with topological or height constraints.",
-          "properties": {
-            "type": { "const": "ConstrainedYule" },
-            "generates": {
-              "type": "string",
-              "enum": ["TREE"],
-              "description": "The constrained Yule process generates a tree."
-            },
-            "parameters": {
-              "type": "object",
-              "properties": {
-                "birthRate": {
-                  "oneOf": [
-                    { "type": "string" },
-                    { "$ref": "#/$defs/parameterValue" }
-                  ],
-                  "description": "Reference to a random variable for the birth rate."
-                },
-                "rootHeight": {
-                  "$ref": "#/$defs/parameterValue",
-                  "description": "Reference to a random variable or value for the tree height."
-                }
-              },
-              "required": ["birthRate"],
-              "additionalProperties": false
-            },
-            "constraints": {
-              "type": "object",
-              "properties": {
-                "topology": {
+                "source": {
                   "type": "object",
                   "properties": {
-                    "type": {
+                    "doi": { 
                       "type": "string",
-                      "enum": ["monophyly", "fixed"],
-                      "description": "Type of topological constraint."
+                      "description": "DOI of the study providing the posterior." 
                     },
+                    "parameter": { 
+                      "type": "string",
+                      "description": "Name of the parameter in the original study." 
+                    }
+                  },
+                  "required": ["doi", "parameter"],
+                  "additionalProperties": false
+                },
+                "approximation": {
+                  "type": "object",
+                  "description": "Distribution used to approximate the posterior."
+                }
+              },
+              "required": ["source", "approximation"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["type", "generates", "parameters"],
+          "additionalProperties": false
+        },
+        {
+    "description": "Yule prior for a tree, referencing a birth rate parameter name.",
+    "properties": {
+      "type": { "const": "Yule" },
+      "generates": {
+        "type": "string",
+        "enum": ["TREE"],
+        "description": "The Yule process generates a tree."
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "birthRate": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Reference to a random variable for the birth rate."
+          }
+        },
+        "required": ["birthRate"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["type", "generates", "parameters"],
+    "additionalProperties": false
+  },
+        {
+    "description": "Birth-Death prior for a tree.",
+    "properties": {
+      "type": { "const": "BirthDeath" },
+      "generates": {
+        "type": "string",
+        "enum": ["TREE"],
+        "description": "The Birth-Death process generates a tree."
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "birthRate": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Reference to a random variable for the birth rate."
+          },
+          "deathRate": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Reference to a random variable for the death rate."
+          },
+          "rootHeight": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Reference to a random variable or value for the root height."
+          }
+        },
+        "required": ["birthRate", "deathRate"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["type", "generates", "parameters"],
+    "additionalProperties": false
+  },
+        {
+    "description": "Coalescent prior for a tree.",
+    "properties": {
+      "type": { "const": "Coalescent" },
+      "generates": {
+        "type": "string",
+        "enum": ["TREE"],
+        "description": "The Coalescent process generates a tree."
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "populationSize": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Reference to a random variable for the population size."
+          }
+        },
+        "required": ["populationSize"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["type", "generates", "parameters"],
+    "additionalProperties": false
+  },
+        {
+    "description": "Constrained Yule prior for a tree with topological or height constraints.",
+    "properties": {
+      "type": { "const": "ConstrainedYule" },
+      "generates": {
+        "type": "string",
+        "enum": ["TREE"],
+        "description": "The constrained Yule process generates a tree."
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+"birthRate": {
+  "$ref": "#/$defs/parameterValue",
+  "description": "Reference to a random variable for the birth rate."
+},
+          "rootHeight": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Reference to a random variable or value for the tree height."
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "topology": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["monophyly", "fixed"],
+                    "description": "Type of topological constraint."
+                  },
+                  "taxonSet": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Taxa that should form a monophyletic group."
+                  },
+                  "clade": {
+                    "type": "string",
+                    "description": "Name for the constrained clade (for monophyly)."
+                  },
+                  "newick": {
+                    "type": "string",
+                    "description": "Newick string representation of the fixed topology."
+                  }
+                },
+                "required": ["type"],
+                "additionalProperties": false
+              },
+              "calibrations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
                     "taxonSet": {
                       "type": "array",
                       "items": { "type": "string" },
-                      "description": "Taxa that should form a monophyletic group."
+                      "description": "Taxa defining the calibrated clade."
                     },
-                    "clade": {
-                      "type": "string",
-                      "description": "Name for the constrained clade (for monophyly)."
-                    },
-                    "newick": {
-                      "type": "string",
-                      "description": "Newick string representation of the fixed topology."
+                    "age": {
+                      "type": "object",
+                      "description": "Age constraint for the clade."
                     }
                   },
-                  "required": ["type"],
+                  "required": ["taxonSet", "age"],
                   "additionalProperties": false
-                },
-                "calibrations": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "taxonSet": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "Taxa defining the calibrated clade."
-                      },
-                      "age": {
-                        "type": "object",
-                        "description": "Age constraint for the clade."
-                      }
-                    },
-                    "required": ["taxonSet", "age"],
-                    "additionalProperties": false
-                  }
                 }
-              },
-              "additionalProperties": false
-            }
-          },
-          "required": ["type", "generates", "parameters"],
-          "additionalProperties": false
-        },
-        {
-          "description": "PhyloCTMC distribution for an alignment, referencing a tree and Q (substitution model).",
-          "properties": {
-            "type": { "const": "PhyloCTMC" },
-            "generates": {
-              "type": "string",
-              "enum": ["ALIGNMENT"],
-              "description": "A PhyloCTMC distribution yields an alignment (sequence data)."
+              }
             },
-            "parameters": {
-              "type": "object",
-              "properties": {
-                "tree": {
-                  "type": "string",
-                  "description": "Name of the random variable representing the tree."
-                },
-                "Q": {
-                  "type": "string",
-                  "description": "Name of the deterministic function or variable representing the rate matrix."
-                },
-                "siteRates": {
-                  "type": "string",
-                  "description": "Optional reference to rate heterogeneity across sites."
-                },
-                "branchRates": {
-                  "type": "string",
-                  "description": "Optional reference to rate heterogeneity across branches."
-                },
-                "rate": {
-                  "oneOf": [
-                    { "type": "number" },
-                    { "type": "string" },
-                    { "$ref": "#/$defs/parameterValue" }
-                  ],
-                  "description": "Overall rate multiplier."
-                }
-              },
-              "required": ["tree", "Q"],
-              "additionalProperties": false
-            }
+            "additionalProperties": false
+          }
+        },
+        "required": ["birthRate"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["type", "generates", "parameters"],
+    "additionalProperties": false
+  },
+        {
+    "description": "PhyloCTMC distribution for an alignment, referencing a tree and Q (substitution model).",
+    "properties": {
+      "type": { "const": "PhyloCTMC" },
+      "generates": {
+        "type": "string",
+        "enum": ["ALIGNMENT"],
+        "description": "A PhyloCTMC distribution yields an alignment (sequence data)."
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "tree": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Name of the random variable representing the tree."
           },
-          "required": ["type", "generates", "parameters"],
-          "additionalProperties": false
-        }
+          "Q": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Name of the deterministic function or variable representing the rate matrix."
+          },
+          "siteRates": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Optional reference to rate heterogeneity across sites."
+          },
+          "branchRates": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Optional reference to rate heterogeneity across branches."
+          },
+          "rate": {
+            "$ref": "#/$defs/parameterValue",
+            "description": "Overall rate multiplier."
+          }
+        },
+        "required": ["tree", "Q"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["type", "generates", "parameters"],
+    "additionalProperties": false
+  },
+        {
+    "description": "Posterior Approximation, for using results from previous studies as priors.",
+    "properties": {
+      "type": { "const": "PosteriorApproximation" },
+      "generates": {
+        "type": "string",
+        "enum": ["REAL", "REAL_VECTOR"],
+        "description": "The type of random variable produced by the approximation."
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "object",
+            "properties": {
+              "doi": { 
+                "type": "string",
+                "description": "DOI of the study providing the posterior." 
+              },
+              "parameter": { 
+                "type": "string",
+                "description": "Name of the parameter in the original study." 
+              }
+            },
+            "required": ["doi", "parameter"],
+            "additionalProperties": false
+          },
+          "approximation": {
+            "type": "object",
+            "description": "Distribution used to approximate the posterior."
+          }
+        },
+        "required": ["source", "approximation"],
+        "additionalProperties": false
+      }
+    },
+    "required": ["type", "generates", "parameters"],
+    "additionalProperties": false
+  }
       ]
     }
   }

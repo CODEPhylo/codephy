@@ -74,23 +74,29 @@
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
         "generates": "REAL_VECTOR",
-        "alpha": [5, 5, 5, 5]
+        "parameters": {
+          "alpha": [5, 5, 5, 5]
+        }
       }
     },
     "birthRateParam": {
       "distribution": {
         "type": "LogNormal",
         "generates": "REAL",
-        "meanlog": 1.0,
-        "sdlog": 0.5
+        "parameters": {
+          "meanlog": 1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "tree": {
@@ -98,7 +104,7 @@
         "type": "Yule",
         "generates": "TREE",
         "parameters": {
-          "birthRate": "birthRateParam"
+          "birthRate": { "variable": "birthRateParam" }
         }
       }
     },
@@ -107,15 +113,15 @@
         "type": "PhyloCTMC",
         "generates": "ALIGNMENT",
         "parameters": {
-          "tree": "tree",
-          "Q": "substitutionModel"
+          "tree": { "variable": "tree" },
+          "Q": { "variable": "substitutionModel" }
         }
       },
       "observedValue": [
-        {"taxon": "Human", "sequence": "ACGT"},
-        {"taxon": "Chimp", "sequence": "ACGA"},
-        {"taxon": "Gorilla", "sequence": "ACGT"},
-        {"taxon": "Orangutan", "sequence": "ACGA"}
+        { "taxon": "Human", "sequence": "ACGT" },
+        { "taxon": "Chimp", "sequence": "ACGA" },
+        { "taxon": "Gorilla", "sequence": "ACGT" },
+        { "taxon": "Orangutan", "sequence": "ACGA" }
       ]
     }
   },
@@ -124,8 +130,8 @@
     "substitutionModel": {
       "function": "hky",
       "arguments": {
-        "kappa": "kappaParam",
-        "baseFrequencies": "baseFreqParam"
+        "kappa": { "variable": "kappaParam"},
+        "baseFrequencies": { "variable": "baseFreqParam"}
       }
     }
   }
