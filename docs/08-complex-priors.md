@@ -518,6 +518,26 @@ Implementations might:
 - Track mixture component assignments as latent variables
 - Implement specialized MCMC moves for mixture models
 
+## IID samples from standard distributions
+
+For independent and identically distributed (IID) samples from standard distributions, Codephy now supports a direct approach using the `dimension` parameter with standard distributions. For example:
+
+```json
+"branchRates": {
+  "distribution": {
+    "type": "LogNormal",
+    "generates": "REAL_VECTOR",
+    "parameters": {
+      "meanlog": -7.0,
+      "sdlog": 1.0,
+      "dimension": 10
+    }
+  }
+}
+```
+
+This generates a vector of 10 independent samples from the same LogNormal distribution, which is more concise than defining a mixture distribution when no correlation between the values is needed.
+
 ## Recommended practices
 
 When using complex priors in Codephy models, consider these best practices:

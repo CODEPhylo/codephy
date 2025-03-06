@@ -195,6 +195,45 @@ function validateDistributionParameters(distribution, typeMap) {
 }
 ```
 
+### Validating vector outputs from standard distributions
+
+With the updated schema, standard distributions like LogNormal, Normal, Gamma, etc. can now generate `REAL_VECTOR` outputs when a dimension parameter is provided. Type checking should validate that:
+
+1. When a standard distribution specifies `generates: "REAL_VECTOR"`, the required `dimension` parameter is present
+2. The `dimension` parameter is a positive integer or a reference to a variable/expression that produces one
+
+```javascript
+function validateVectorDistributions(distribution, varName) {
+  // List of standard distributions that can generate vectors with dimension parameter
+  const standardDistributions = [
+    'LogNormal', 'Normal', 'Gamma', 'Beta', 'Exponential', 'Uniform'
+  ];
+  
+  if (standardDistributions.includes(distribution.type) && 
+      distribution.generates === 'REAL_VECTOR') {
+    
+    // Check that dimension parameter exists
+    if (!distribution.parameters.dimension) {
+      throw new Error(
+        `Variable '${varName}' has distribution type '${distribution.type}' with ` +
+        `generates: 'REAL_VECTOR' but is missing required 'dimension' parameter`
+      );
+    }
+    
+    // If dimension is a direct value, check it's positive
+    if (typeof distribution.parameters.dimension === 'number' && 
+        distribution.parameters.dimension <= 0) {
+      throw new Error(
+        `Variable '${varName}' has invalid dimension parameter: ` +
+        `${distribution.parameters.dimension}. Dimension must be positive.`
+      );
+    }
+  }
+}
+```
+
+This validation ensures that when standard distributions are used to generate vectors of values (for example, to model IID branch rates across a tree), they are properly configured with appropriate dimensions.
+
 This level of validation helps catch more subtle errors that wouldn't be detected by simple schema validation or reference checking.
 
 ## Distribution-specific validation
