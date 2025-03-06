@@ -463,50 +463,61 @@ public class CodephyValidator {
      * @param randomVars Random variables node
      * @return List of error messages
      */
-    private List<String> validateDistributions(JsonNode randomVars) {
-        List<String> errors = new ArrayList<>();
+private List<String> validateDistributions(JsonNode randomVars) {
+    List<String> errors = new ArrayList<>();
+    
+    // Define expected generates types for distribution types with updated support for vectors
+    Map<String, Set<String>> expectedTypes = new HashMap<>();
+    expectedTypes.put("LogNormal", new HashSet<>(Arrays.asList("REAL", "REAL_VECTOR")));
+    expectedTypes.put("Normal", new HashSet<>(Arrays.asList("REAL", "REAL_VECTOR")));
+    expectedTypes.put("Gamma", new HashSet<>(Arrays.asList("REAL", "REAL_VECTOR")));
+    expectedTypes.put("Beta", new HashSet<>(Arrays.asList("REAL", "REAL_VECTOR")));
+    expectedTypes.put("Exponential", new HashSet<>(Arrays.asList("REAL", "REAL_VECTOR")));
+    expectedTypes.put("Uniform", new HashSet<>(Arrays.asList("REAL", "REAL_VECTOR")));
+    expectedTypes.put("Dirichlet", new HashSet<>(Arrays.asList("REAL_VECTOR")));
+    expectedTypes.put("MultivariateNormal", new HashSet<>(Arrays.asList("REAL_VECTOR")));
+    expectedTypes.put("Yule", new HashSet<>(Arrays.asList("TREE")));
+    expectedTypes.put("BirthDeath", new HashSet<>(Arrays.asList("TREE")));
+    expectedTypes.put("Coalescent", new HashSet<>(Arrays.asList("TREE")));
+    expectedTypes.put("ConstrainedYule", new HashSet<>(Arrays.asList("TREE")));
+    expectedTypes.put("PhyloCTMC", new HashSet<>(Arrays.asList("ALIGNMENT")));
+    
+    Iterator<Map.Entry<String, JsonNode>> varFields = randomVars.fields();
+    while (varFields.hasNext()) {
+        Map.Entry<String, JsonNode> varEntry = varFields.next();
+        String varName = varEntry.getKey();
+        JsonNode varDef = varEntry.getValue();
         
-        // Define expected generates types for distribution types
-        Map<String, String> expectedTypes = new HashMap<>();
-        expectedTypes.put("LogNormal", "REAL");
-        expectedTypes.put("Normal", "REAL");
-        expectedTypes.put("Gamma", "REAL");
-        expectedTypes.put("Beta", "REAL");
-        expectedTypes.put("Exponential", "REAL");
-        expectedTypes.put("Uniform", "REAL");
-        expectedTypes.put("Dirichlet", "REAL_VECTOR");
-        expectedTypes.put("MultivariateNormal", "REAL_VECTOR");
-        expectedTypes.put("Yule", "TREE");
-        expectedTypes.put("BirthDeath", "TREE");
-        expectedTypes.put("Coalescent", "TREE");
-        expectedTypes.put("ConstrainedYule", "TREE");
-        expectedTypes.put("PhyloCTMC", "ALIGNMENT");
+        if (!varDef.has("distribution")) {
+            continue;
+        }
         
-        Iterator<Map.Entry<String, JsonNode>> varFields = randomVars.fields();
-        while (varFields.hasNext()) {
-            Map.Entry<String, JsonNode> varEntry = varFields.next();
-            String varName = varEntry.getKey();
-            JsonNode varDef = varEntry.getValue();
+        JsonNode dist = varDef.get("distribution");
+        if (dist.has("type") && dist.has("generates")) {
+            String distType = dist.get("type").asText();
+            String generates = dist.get("generates").asText();
             
-            if (!varDef.has("distribution")) {
-                continue;
+            if (expectedTypes.containsKey(distType) && !expectedTypes.get(distType).contains(generates)) {
+                errors.add("Random variable '" + varName + "' has distribution type '" + distType + "' " +
+                         "but generates type '" + generates + "'. Expected generates types: " + 
+                         String.join(" or ", expectedTypes.get(distType)));
             }
             
-            JsonNode dist = varDef.get("distribution");
-            if (dist.has("type") && dist.has("generates")) {
-                String distType = dist.get("type").asText();
-                String generates = dist.get("generates").asText();
+            // Require dimension parameter for vector versions of scalar distributions
+            if (generates.equals("REAL_VECTOR") && 
+                Arrays.asList("LogNormal", "Normal", "Gamma", "Beta", "Exponential", "Uniform").contains(distType)) {
                 
-                if (expectedTypes.containsKey(distType) && !expectedTypes.get(distType).equals(generates)) {
+                if (!dist.has("parameters") || !dist.get("parameters").has("dimension")) {
                     errors.add("Random variable '" + varName + "' has distribution type '" + distType + "' " +
-                             "but generates type '" + generates + "'. Expected generates type: '" + 
-                             expectedTypes.get(distType) + "'");
+                             "but generates type '" + generates + "' without required dimension parameter. " +
+                             "When a scalar distribution generates a vector, a dimension parameter is required.");
                 }
             }
         }
-        
-        return errors;
     }
+    
+    return errors;
+}
 
     /**
      * Result class for validation operations.
