@@ -126,20 +126,27 @@ cd target
 To use the mapper programmatically in your Java code:
 
 ```java
-// Create the mapper
-CodephyToBEAST2Mapper mapper = new CodephyToBEAST2Mapper();
+import org.codephy.mappers.beast2.CodephyToBEAST2Mapper;
+import beast.base.core.BEASTInterface;
 
-// Convert the Codephy model to BEAST2 objects
-mapper.convertToBEAST2Objects("path/to/codephy-model.json");
-
-// Get the root BEAST2 object (MCMC)
-BEASTInterface beast2Model = mapper.getPosterior();
-
-// Optionally export to XML
-mapper.exportToXML("path/to/output.xml");
+try {
+    // Create the mapper
+    CodephyToBEAST2Mapper mapper = new CodephyToBEAST2Mapper();
+    
+    // Convert the Codephy model to BEAST2 objects
+    mapper.convertToBEAST2Objects("path/to/codephy-model.json");
+    
+    // Get the root BEAST2 object (Posterior)
+    BEASTInterface posterior = mapper.getPosterior();
+    
+    // Export to BEAST2 XML format
+    mapper.exportToXML("path/to/output.xml");
+} catch (Exception e) {
+    e.printStackTrace();
+}
 ```
 
-See `MapperExample.java` for a complete example.
+This will convert your Codephy JSON model to BEAST2 objects and optionally export them as a BEAST2 XML file that can be directly used with BEAST2 applications.
 
 ### Maven Dependency
 
