@@ -352,46 +352,49 @@ public class ModelBuilder {
     /**
      * Set up MCMC operators.
      */
-    private List<Operator> setupOperators(JsonNode model, State state) throws Exception {
-        List<Operator> operators = new ArrayList<>();
-        
-        // Set up operators for parameters
-        for (BEASTInterface obj : beastObjects.values()) {
-            if (obj instanceof Parameter) {
-                Parameter param = (Parameter) obj;
-                String paramID = param.getID();
-                
-                if (param.getDimension() > 1) {
-                    // Use Delta Exchange operator for multidimensional parameters
-                    DeltaExchangeOperator deltaOperator = new DeltaExchangeOperator();
-                    deltaOperator.setID(paramID + "Operator");
-                    deltaOperator.initByName("parameter", param, "weight", 1.0);
-                    operators.add(deltaOperator);
-                    beastObjects.put(paramID + "Operator", deltaOperator);
-                } else {
-                    // Use Scale operator for scalar parameters
-                    ScaleOperator operator = new ScaleOperator();
-                    operator.setID(paramID + "Operator");
-                    operator.initByName("parameter", param, "weight", 1.0);
-                    operators.add(operator);
-                    beastObjects.put(paramID + "Operator", operator);
-                }
+private List<Operator> setupOperators(JsonNode model, State state) throws Exception {
+    List<Operator> operators = new ArrayList<>();
+    
+    // Make a defensive copy of the values to avoid ConcurrentModificationException
+    List<BEASTInterface> objectsCopy = new ArrayList<>(beastObjects.values());
+    
+    // Set up operators for parameters
+    for (BEASTInterface obj : objectsCopy) {
+        if (obj instanceof Parameter) {
+            Parameter param = (Parameter) obj;
+            String paramID = param.getID();
+            
+            if (param.getDimension() > 1) {
+                // Use Delta Exchange operator for multidimensional parameters
+                DeltaExchangeOperator deltaOperator = new DeltaExchangeOperator();
+                deltaOperator.setID(paramID + "Operator");
+                deltaOperator.initByName("parameter", param, "weight", 1.0);
+                operators.add(deltaOperator);
+                beastObjects.put(paramID + "Operator", deltaOperator);
+            } else {
+                // Use Scale operator for scalar parameters
+                ScaleOperator operator = new ScaleOperator();
+                operator.setID(paramID + "Operator");
+                operator.initByName("parameter", param, "weight", 1.0);
+                operators.add(operator);
+                beastObjects.put(paramID + "Operator", operator);
             }
         }
-        
-        // Set up operators for trees
-        for (BEASTInterface obj : beastObjects.values()) {
-            if (obj instanceof Tree) {
-                Tree tree = (Tree) obj;
-                String treeID = tree.getID();
-                
-                // SubtreeSlide operator
-                SubtreeSlide subtreeSlide = new SubtreeSlide();
-                subtreeSlide.setID(treeID + "SubtreeSlide");
-                subtreeSlide.initByName("tree", tree, "weight", 5.0);
-                operators.add(subtreeSlide);
-                beastObjects.put(treeID + "SubtreeSlide", subtreeSlide);
-                
+    }
+    
+    // Set up operators for trees
+    for (BEASTInterface obj : objectsCopy) {
+        if (obj instanceof Tree) {
+            Tree tree = (Tree) obj;
+            String treeID = tree.getID();
+            
+            // SubtreeSlide operator
+            SubtreeSlide subtreeSlide = new SubtreeSlide();
+            subtreeSlide.setID(treeID + "SubtreeSlide");
+            subtreeSlide.initByName("tree", tree, "weight", 5.0);
+            operators.add(subtreeSlide);
+            beastObjects.put(treeID + "SubtreeSlide", subtreeSlide);
+            
                 // Narrow Exchange operator
                 Exchange narrowExchange = new Exchange();
                 narrowExchange.setID(treeID + "NarrowExchange");
@@ -442,84 +445,76 @@ public class ModelBuilder {
     /**
      * Set up the MCMC object.
      */
-    private MCMC setupMCMC(JsonNode model, CompoundDistribution posterior, 
-                          State state, List<Operator> operators) throws Exception {
-        // Create MCMC object
-        MCMC mcmc = new MCMC();
-        mcmc.setID("mcmc");
-        
-        // Set up chainLength, state, operators, and posterior
-        mcmc.initByName(
-            "chainLength", 10000000,
-            "state", state,
-            "distribution", posterior,
-            "operator", operators
-        );
-        
-        // Set up loggers
-        // 1. Console logger
-        Logger consoleLogger = new Logger();
-        consoleLogger.setID("consoleLogger");
-        consoleLogger.initByName(
-            "logEvery", 1000,
-            "model", posterior,
-            "log", posterior
-        );
-        
-        // 2. File logger for parameters
-        Logger fileLogger = new Logger();
-        fileLogger.setID("fileLogger");
-        fileLogger.initByName(
-            "logEvery", 1000,
-            "fileName", "$(filebase).log",
-            "model", posterior
-        );
-        
-        // Add all state nodes to the file logger
-        List<BEASTInterface> loggableStateNodes = new ArrayList<>();
-        
-        // In BEAST 2.7.5, we need to get state nodes from the state object differently
-        // Instead of using state.getStateNodes(), get them directly from inputs
-        for (StateNode stateNode : (List<StateNode>) state.getInput("stateNode").get()) {
-            if (!(stateNode instanceof Tree)) {
-                loggableStateNodes.add(stateNode);
-            }
+private MCMC setupMCMC(JsonNode model, CompoundDistribution posterior, 
+                      State state, List<Operator> operators) throws Exception {
+    // Create MCMC object
+    MCMC mcmc = new MCMC();
+    mcmc.setID("mcmc");
+    
+    // Create loggers
+    List<Logger> loggers = new ArrayList<>();
+    
+    // 1. Console logger
+    Logger consoleLogger = new Logger();
+    consoleLogger.setID("consoleLogger");
+    // Add items to log for console
+    List<BEASTInterface> consoleLogItems = new ArrayList<>();
+    consoleLogItems.add(posterior); // Always log the posterior
+    consoleLogger.initByName(
+        "logEvery", 1000,
+        "log", consoleLogItems
+    );
+    loggers.add(consoleLogger);
+    
+    // 2. File logger for parameters
+    Logger fileLogger = new Logger();
+    fileLogger.setID("fileLogger");
+    // Add items to log for file
+    List<BEASTInterface> fileLogItems = new ArrayList<>();
+    fileLogItems.add(posterior); // Always log the posterior
+    // Add all parameters to log
+    for (BEASTInterface obj : beastObjects.values()) {
+        if (obj instanceof Parameter && !(obj instanceof Tree)) {
+            fileLogItems.add(obj);
         }
-        
-        fileLogger.setInputValue("log", loggableStateNodes);
-        
-        // 3. Tree logger
-        Logger treeLogger = new Logger();
-        treeLogger.setID("treeLogger");
-        treeLogger.initByName(
-            "logEvery", 1000,
-            "fileName", "$(filebase).trees",
-            "mode", "tree"
-        );
-        
-        // Add trees to the tree logger
-        List<BEASTInterface> loggableTrees = new ArrayList<>();
-        
-        // In BEAST 2.7.5, we need to get state nodes from the state object differently
-        // Instead of using state.getStateNodes(), get them directly from inputs
-        for (StateNode stateNode : (List<StateNode>) state.getInput("stateNode").get()) {
-            if (stateNode instanceof Tree) {
-                loggableTrees.add(stateNode);
-            }
-        }
-        
-        treeLogger.setInputValue("log", loggableTrees);
-        
-        // Add loggers to MCMC
-        List<Logger> loggers = new ArrayList<>();
-        loggers.add(consoleLogger);
-        loggers.add(fileLogger);
-        loggers.add(treeLogger);
-        
-        mcmc.setInputValue("logger", loggers);
-        
-        beastObjects.put("mcmc", mcmc);
-        
-        return mcmc;
     }
+    fileLogger.initByName(
+        "fileName", "$(filebase).log",
+        "logEvery", 1000,
+        "log", fileLogItems
+    );
+    loggers.add(fileLogger);
+    
+    // 3. Tree logger
+    Logger treeLogger = new Logger();
+    treeLogger.setID("treeLogger");
+    // Add trees to log
+    List<BEASTInterface> treeLogItems = new ArrayList<>();
+    // Find trees to log
+    for (BEASTInterface obj : beastObjects.values()) {
+        if (obj instanceof Tree) {
+            treeLogItems.add(obj);
+        }
+    }
+    treeLogger.initByName(
+        "fileName", "$(filebase).trees",
+        "logEvery", 1000,
+        "mode", "tree",
+        "log", treeLogItems
+    );
+    loggers.add(treeLogger);
+    
+    // Set up chainLength, state, operators, and posterior
+    mcmc.initByName(
+        "chainLength", Long.valueOf(10000000),
+        "state", state,
+        "distribution", posterior,
+        "operator", operators,
+        "logger", loggers
+    );
+    
+    beastObjects.put("mcmc", mcmc);
+    
+    return mcmc;
+}
 }

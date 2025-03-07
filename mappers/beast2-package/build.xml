@@ -1,0 +1,120 @@
+<project default="build" basedir=".">
+    <property name="srcdir" value="src" />
+    <property name="builddir" value="build" />
+    <property name="libdir" value="lib" />
+    <property name="beastdir" location="/Applications/BEAST 2.7.5/lib" />
+    <property name="mappersjardir" location="../beast2/target" />
+    <property name="packagename" value="codephy-beast2-package" />
+    <property name="version" value="0.1.0" />
+
+    <!-- Explicitly define the launcher.jar and BEAST.app.jar paths -->
+    <property name="launcherjar" location="${beastdir}/launcher.jar" />
+    <property name="beastappjar" location="${beastdir}/packages/BEAST.app.jar" />
+    <property name="beastbasejar" location="${beastdir}/packages/BEAST.base.jar" />
+    <property name="mappersjar" location="${mappersjardir}/codephy-mapper-beast2-0.1.0-jar-with-dependencies.jar" />
+
+    <path id="classpath">
+        <pathelement path="${launcherjar}"/>
+        <pathelement path="${beastappjar}"/>
+        <pathelement path="${beastbasejar}"/>
+        <pathelement path="${mappersjar}"/>
+    </path>
+
+    <target name="init">
+        <mkdir dir="${builddir}" />
+        <mkdir dir="${libdir}" />
+        <!-- Copy the mapper JAR to the lib directory -->
+        <copy file="${mappersjar}" tofile="${libdir}/codephy-mapper.jar" />
+    </target>
+
+    <target name="clean">
+        <delete dir="${builddir}" />
+        <delete file="${packagename}.v${version}.jar" />
+    </target>
+
+    <target name="compile" depends="init">
+        <echo message="Classpath: ${launcherjar}:${beastappjar}:${beastbasejar}:${mappersjar}" />
+        <javac srcdir="${srcdir}" destdir="${builddir}" classpathref="classpath" 
+               source="11" target="11" includeantruntime="false" debug="true" fork="true" />
+    </target>
+
+    <target name="build" depends="compile">
+        <jar jarfile="${packagename}.v${version}.jar">
+            <manifest>
+                <attribute name="Built-By" value="${user.name}" />
+                <attribute name="Main-Class" value="org.codephy.beast2.app.CodephyMapperApp" />
+                <attribute name="Class-Path" value="lib/codephy-mapper.jar" />
+            </manifest>
+            <fileset dir="${builddir}" />
+            <fileset file="version.xml" />
+        </jar>
+    </target>
+
+    <target name="create-script" depends="build">
+        <echo file="codephyMapper">#!/bin/sh
+
+# Determine the location of this script
+if [ -z "$SCRIPT_LOCATION" ]; then
+    ## resolve links - $0 may be a link to application
+    PRG="$0"
+    # need this for relative symlinks
+    while [ -h "$PRG" ]; do
+        ls=`ls -ld "$PRG"`
+        link=`expr "$ls" : '.*-> \(.*\)$'`
+        if expr "$link" : '/.*' > /dev/null; then
+            PRG="$link"
+        else
+            PRG="`dirname "$PRG"`/$link"
+        fi
+    done
+    saveddir=`pwd`
+    SCRIPT_LOCATION=`dirname "$PRG"`
+    cd "$saveddir"
+fi
+
+# Find BEAST installation
+if [ -z "$BEAST" ]; then
+    if [ -d "/Applications/BEAST 2.7.5" ]; then
+        BEAST="/Applications/BEAST 2.7.5"
+    elif [ -d "$HOME/Applications/BEAST 2.7.5" ]; then
+        BEAST="$HOME/Applications/BEAST 2.7.5"
+    elif [ -d "/usr/local/share/beast" ]; then
+        BEAST="/usr/local/share/beast"
+    else
+        echo "Cannot find BEAST2 installation. Please set BEAST environment variable."
+        exit 1
+    fi
+fi
+
+# Set Java
+JAVA="java"
+if [ -x "${BEAST}/jre/bin/java" ]; then
+    JAVA="${BEAST}/jre/bin/java"
+fi
+
+# Directly run the app with a full classpath
+CLASSPATH="${BEAST}/lib/launcher.jar"
+CLASSPATH="${CLASSPATH}:${BEAST}/lib/packages/BEAST.base.jar"
+CLASSPATH="${CLASSPATH}:${BEAST}/lib/packages/BEAST.app.jar"
+CLASSPATH="${CLASSPATH}:${SCRIPT_LOCATION}/${packagename}.v${version}.jar"
+CLASSPATH="${CLASSPATH}:${SCRIPT_LOCATION}/lib/codephy-mapper.jar"
+
+# Run directly with the proper classpath
+"$JAVA" -Dlauncher.wait.for.exit=true -Xss256m -Xmx4g -cp "$CLASSPATH" org.codephy.beast2.app.CodephyMapperApp $@
+        </echo>
+        <chmod file="codephyMapper" perm="755"/>
+    </target>
+
+    <target name="all" depends="clean, build, create-script" />
+
+    <target name="install" depends="all">
+        <mkdir dir="${user.home}/.beast/2.7.5/codephy-beast2-package" />
+        <mkdir dir="${user.home}/.beast/2.7.5/codephy-beast2-package/lib" />
+        <copy file="${packagename}.v${version}.jar" todir="${user.home}/.beast/2.7.5/codephy-beast2-package" />
+        <copy todir="${user.home}/.beast/2.7.5/codephy-beast2-package/lib">
+            <fileset dir="${libdir}" includes="**/*.jar"/>
+        </copy>
+        <copy file="codephyMapper" todir="${user.home}/.beast/2.7.5/codephy-beast2-package" />
+        <chmod file="${user.home}/.beast/2.7.5/codephy-beast2-package/codephyMapper" perm="755"/>
+    </target>
+</project>

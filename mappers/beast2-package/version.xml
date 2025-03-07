@@ -1,0 +1,6 @@
+<package name="codephy-beast2-package" version="0.1.0">
+    <depends on="beast2" atleast="2.7.5"/>
+    <packageapp description="Codephy to BEAST2 Mapper"
+                class="org.codephy.beast2.app.CodephyMapperApp"
+                args="&lt;input-json-file&gt; &lt;output-xml-file&gt;"/>
+</package>

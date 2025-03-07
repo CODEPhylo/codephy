@@ -52,6 +52,11 @@
             <artifactId>beast-app</artifactId>
             <version>${beast2.version}</version>
         </dependency>
+        <dependency>
+            <groupId>beast2</groupId>
+            <artifactId>beast-launcher</artifactId>
+            <version>${beast2.version}</version>
+        </dependency>
 
         <!-- Jackson for JSON parsing -->
         <dependency>

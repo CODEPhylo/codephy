@@ -36,12 +36,11 @@ public class CodephyToBEAST2Mapper {
     /**
      * Constructor initializes the component mappers.
      */
-    public CodephyToBEAST2Mapper() {
-        distributionMapper = new DistributionMapper(beastObjects);
-        functionMapper = new FunctionMapper(beastObjects);
-        modelBuilder = new ModelBuilder(beastObjects);
-    }
-    
+public CodephyToBEAST2Mapper() {
+    distributionMapper = new DistributionMapper(beastObjects);
+    functionMapper = new FunctionMapper(beastObjects);
+    modelBuilder = new ModelBuilder(beastObjects);
+}    
     /**
      * Convert a Codephy JSON file to BEAST2 objects.
      *
@@ -57,6 +56,9 @@ public class CodephyToBEAST2Mapper {
         
         // Phase 2: Create all deterministic functions
         createDeterministicFunctions(model);
+        
+        // UPDATE: Fix tree taxa here
+        TreeDistributionsMapper.updateTreesWithCorrectTaxa(beastObjects);
         
         // Phase 3: Connect components and resolve references
         connectComponents(model);

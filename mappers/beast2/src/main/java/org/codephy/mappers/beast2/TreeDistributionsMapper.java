@@ -5,9 +5,13 @@ import beast.base.inference.parameter.Parameter;
 import beast.base.inference.parameter.RealParameter;
 import beast.base.evolution.alignment.Alignment;
 import beast.base.evolution.alignment.Sequence;
+import beast.base.evolution.alignment.Taxon;
 import beast.base.evolution.alignment.TaxonSet;
 import beast.base.evolution.tree.Tree;
 import beast.base.evolution.tree.TreeParser;
+import beast.base.evolution.tree.Node;
+import beast.base.evolution.tree.coalescent.RandomTree;
+import beast.base.evolution.tree.coalescent.ConstantPopulation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -93,16 +97,35 @@ public class TreeDistributionsMapper {
         
         // Create alignment from observed sequences
         List<Sequence> sequences = new ArrayList<>();
+        List<Taxon> taxonObjects = new ArrayList<>();
+        
         for (int i = 0; i < observedValue.size(); i++) {
             JsonNode seqNode = observedValue.get(i);
+            String taxonName = seqNode.path("taxon").asText();
+            
+            // Create Taxon object
+            Taxon taxon = new Taxon(taxonName);
+            taxonObjects.add(taxon);
+            
+            // Create Sequence with this taxon
             Sequence sequence = new Sequence();
             sequence.initByName(
-                "taxon", seqNode.path("taxon").asText(),
+                "taxon", taxonName,
                 "value", seqNode.path("sequence").asText()
             );
             sequences.add(sequence);
+            System.out.println(taxonName + ": " + 
+                               seqNode.path("sequence").asText().length() + " " +
+                               seqNode.path("sequence").asText().replace("-", "").length());
         }
         
+        // Create TaxonSet for later use with trees
+        TaxonSet taxonSet = new TaxonSet();
+        taxonSet.setID(name + ".taxa");
+        taxonSet.initByName("taxon", taxonObjects);
+        beastObjects.put(name + ".taxa", taxonSet);
+        
+        // Create the alignment
         Alignment alignment = new Alignment();
         alignment.setID(name);
         alignment.initByName("sequence", sequences);
@@ -117,15 +140,147 @@ public class TreeDistributionsMapper {
         // when creating the TreeLikelihood
     }
     
-    /**
-     * Create a Yule tree model.
-     */
-    private void createYuleModel(String name, JsonNode distNode) throws Exception {
-        // Create a simple tree to start with, will be connected later
-        Tree tree = new Tree();
-        tree.setID(name);
-        beastObjects.put(name, tree);
+/**
+ * Create a Yule tree model.
+ */
+private void createYuleModel(String name, JsonNode distNode) throws Exception {
+    // In your model, the PhyloCTMC references the tree, not the other way around
+    // We need to check if an alignment exists and use its taxa
+    
+    System.out.println("Creating tree named: " + name);
+    System.out.println("Available objects: " + beastObjects.keySet());
+    
+    // Get the alignment
+    Alignment alignment = null;
+    TaxonSet taxonSet = null;
+    
+    // Check if there's an alignment with taxa that we can use
+    if (beastObjects.containsKey("alignment")) {
+        alignment = (Alignment) beastObjects.get("alignment");
+        System.out.println("Found alignment with " + alignment.getTaxonCount() + " taxa");
+        
+        // Create a TaxonSet from the alignment if needed
+        if (!beastObjects.containsKey("alignment.taxa")) {
+            taxonSet = new TaxonSet();
+            taxonSet.setID("alignment.taxa");
+            taxonSet.initByName("alignment", alignment);
+            beastObjects.put("alignment.taxa", taxonSet);
+        } else {
+            taxonSet = (TaxonSet) beastObjects.get("alignment.taxa");
+        }
     }
+    
+    // Create a properly initialized tree
+    if (taxonSet != null) {
+        // Create a tree with the taxon set from the alignment
+        StringBuilder newick = new StringBuilder();
+        newick.append("(");
+        for (int i = 0; i < taxonSet.getTaxonCount(); i++) {
+            if (i > 0) newick.append(",");
+            newick.append(taxonSet.getTaxonId(i));
+        }
+        newick.append("):1.0;");
+        
+        System.out.println("Creating tree with Newick: " + newick.toString());
+        
+        // Parse the tree
+        TreeParser parser = new TreeParser();
+        parser.setID(name);
+        parser.initByName(
+            "newick", newick.toString(),
+            "IsLabelledNewick", true,
+            "adjustTipHeights", false,
+            "taxa", taxonSet
+        );
+        beastObjects.put(name, parser);
+        System.out.println("Tree created with " + parser.getLeafNodeCount() + " leaves");
+    } else {
+        // Create a dummy tree if no alignment is available
+        System.out.println("No alignment found, creating dummy tree");
+        StringBuilder newick = new StringBuilder();
+        newick.append("(taxon1:1.0,taxon2:1.0):1.0;");
+        
+        TreeParser parser = new TreeParser();
+        parser.setID(name);
+        parser.initByName(
+            "newick", newick.toString(),
+            "IsLabelledNewick", true,
+            "adjustTipHeights", false
+        );
+        beastObjects.put(name, parser);
+    }
+}
+
+public static void updateTreesWithCorrectTaxa(Map<String, BEASTInterface> beastObjects) throws Exception {
+    System.out.println("Updating trees with correct taxa");
+    
+    // For each tree in the beastObjects
+    for (String key : new ArrayList<>(beastObjects.keySet())) {
+        if (beastObjects.get(key) instanceof Tree) {
+            Tree oldTree = (Tree) beastObjects.get(key);
+            System.out.println("Checking tree: " + key);
+            
+            // Find an alignment
+            for (String alignmentKey : beastObjects.keySet()) {
+                if (beastObjects.get(alignmentKey) instanceof Alignment) {
+                    Alignment alignment = (Alignment) beastObjects.get(alignmentKey);
+                    System.out.println("Found alignment: " + alignmentKey);
+                    
+                    // Create a Newick string for a pectinate tree
+                    StringBuilder newickBuilder = new StringBuilder();
+                    List<String> taxaNames = alignment.getTaxaNames();
+                    
+                    if (taxaNames.size() > 1) {
+                        // Start with the first two taxa
+                        newickBuilder.append("(").append(taxaNames.get(0)).append(":0.5,");
+                        
+                        // Add remaining taxa as a pectinate tree
+                        for (int i = 1; i < taxaNames.size() - 1; i++) {
+                            newickBuilder.append("(").append(taxaNames.get(i)).append(":0.5,");
+                        }
+                        
+                        // Add the last taxon and close all parentheses
+                        newickBuilder.append(taxaNames.get(taxaNames.size() - 1)).append(":0.5");
+                        
+                        // Close all open parentheses
+                        for (int i = 0; i < taxaNames.size() - 1; i++) {
+                            newickBuilder.append(")").append(":0.5");
+                        }
+                    } else if (taxaNames.size() == 1) {
+                        // Just one taxon
+                        newickBuilder.append(taxaNames.get(0));
+                    }
+                    
+                    // Add the final semicolon
+                    newickBuilder.append(";");
+                    
+                    String newick = newickBuilder.toString();
+                    System.out.println("Created newick tree: " + newick);
+                    
+                    try {
+                        // Use a constructor that doesn't require a separate taxon names parameter
+                        TreeParser newTree = new TreeParser();
+                        newTree.setID(key);
+                        newTree.initByName(
+                            "newick", newick,
+                            "IsLabelledNewick", true,
+                            "adjustTipHeights", false,
+                            "singlechild", false
+                        );
+                        
+                        // Replace the existing tree
+                        beastObjects.put(key, newTree);
+                        System.out.println("Tree replaced with " + newTree.getLeafNodeCount() + " leaves");
+                    } catch (Exception e) {
+                        System.out.println("Failed to create tree: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
     
     /**
      * Connect the Yule tree model.
@@ -148,10 +303,52 @@ public class TreeDistributionsMapper {
      * Create a Birth-Death tree model.
      */
     private void createBirthDeathModel(String name, JsonNode distNode) throws Exception {
-        // Create a simple tree to start with, will be connected later
-        Tree tree = new Tree();
-        tree.setID(name);
-        beastObjects.put(name, tree);
+        // Similar to createYuleModel
+        String alignmentRef = null;
+        JsonNode paramsNode = distNode.path("parameters");
+        
+        if (paramsNode.has("phyloCTMC")) {
+            alignmentRef = Utils.extractVariableReference(paramsNode, "phyloCTMC");
+        }
+        
+        // Create a properly initialized tree
+        if (alignmentRef != null && beastObjects.containsKey(alignmentRef + ".taxa")) {
+            // Create a tree with the taxon set from the alignment
+            TaxonSet taxonSet = (TaxonSet) beastObjects.get(alignmentRef + ".taxa");
+            
+            // Create a simple star tree using the TaxonSet
+            StringBuilder newick = new StringBuilder();
+            newick.append("(");
+            for (int i = 0; i < taxonSet.getTaxonCount(); i++) {
+                if (i > 0) newick.append(",");
+                newick.append(taxonSet.getTaxonId(i));
+            }
+            newick.append("):1.0;");
+            
+            // Parse the tree
+            TreeParser parser = new TreeParser();
+            parser.setID(name);
+            parser.initByName(
+                "newick", newick.toString(),
+                "IsLabelledNewick", true,
+                "adjustTipHeights", false,
+                "taxa", taxonSet
+            );
+            beastObjects.put(name, parser);
+        } else {
+            // Create a dummy tree with minimal taxa
+            StringBuilder newick = new StringBuilder();
+            newick.append("(taxon1:1.0,taxon2:1.0):1.0;");
+            
+            TreeParser parser = new TreeParser();
+            parser.setID(name);
+            parser.initByName(
+                "newick", newick.toString(),
+                "IsLabelledNewick", true,
+                "adjustTipHeights", false
+            );
+            beastObjects.put(name, parser);
+        }
     }
     
     /**
@@ -212,10 +409,52 @@ public class TreeDistributionsMapper {
      * Create a Coalescent tree model.
      */
     private void createCoalescentModel(String name, JsonNode distNode) throws Exception {
-        // Create a simple tree to start with, will be connected later
-        Tree tree = new Tree();
-        tree.setID(name);
-        beastObjects.put(name, tree);
+        // Similar to createYuleModel
+        String alignmentRef = null;
+        JsonNode paramsNode = distNode.path("parameters");
+        
+        if (paramsNode.has("phyloCTMC")) {
+            alignmentRef = Utils.extractVariableReference(paramsNode, "phyloCTMC");
+        }
+        
+        // Create a properly initialized tree
+        if (alignmentRef != null && beastObjects.containsKey(alignmentRef + ".taxa")) {
+            // Create a tree with the taxon set from the alignment
+            TaxonSet taxonSet = (TaxonSet) beastObjects.get(alignmentRef + ".taxa");
+            
+            // Create a simple star tree using the TaxonSet
+            StringBuilder newick = new StringBuilder();
+            newick.append("(");
+            for (int i = 0; i < taxonSet.getTaxonCount(); i++) {
+                if (i > 0) newick.append(",");
+                newick.append(taxonSet.getTaxonId(i));
+            }
+            newick.append("):1.0;");
+            
+            // Parse the tree
+            TreeParser parser = new TreeParser();
+            parser.setID(name);
+            parser.initByName(
+                "newick", newick.toString(),
+                "IsLabelledNewick", true,
+                "adjustTipHeights", false,
+                "taxa", taxonSet
+            );
+            beastObjects.put(name, parser);
+        } else {
+            // Create a dummy tree with minimal taxa
+            StringBuilder newick = new StringBuilder();
+            newick.append("(taxon1:1.0,taxon2:1.0):1.0;");
+            
+            TreeParser parser = new TreeParser();
+            parser.setID(name);
+            parser.initByName(
+                "newick", newick.toString(),
+                "IsLabelledNewick", true,
+                "adjustTipHeights", false
+            );
+            beastObjects.put(name, parser);
+        }
     }
     
     /**
@@ -246,10 +485,52 @@ public class TreeDistributionsMapper {
      * Create a Constrained Yule tree model.
      */
     private void createConstrainedYuleModel(String name, JsonNode distNode) throws Exception {
-        // Create a simple tree to start with, will be connected later
-        Tree tree = new Tree();
-        tree.setID(name);
-        beastObjects.put(name, tree);
+        // Similar to createYuleModel
+        String alignmentRef = null;
+        JsonNode paramsNode = distNode.path("parameters");
+        
+        if (paramsNode.has("phyloCTMC")) {
+            alignmentRef = Utils.extractVariableReference(paramsNode, "phyloCTMC");
+        }
+        
+        // Create a properly initialized tree
+        if (alignmentRef != null && beastObjects.containsKey(alignmentRef + ".taxa")) {
+            // Create a tree with the taxon set from the alignment
+            TaxonSet taxonSet = (TaxonSet) beastObjects.get(alignmentRef + ".taxa");
+            
+            // Create a simple star tree using the TaxonSet
+            StringBuilder newick = new StringBuilder();
+            newick.append("(");
+            for (int i = 0; i < taxonSet.getTaxonCount(); i++) {
+                if (i > 0) newick.append(",");
+                newick.append(taxonSet.getTaxonId(i));
+            }
+            newick.append("):1.0;");
+            
+            // Parse the tree
+            TreeParser parser = new TreeParser();
+            parser.setID(name);
+            parser.initByName(
+                "newick", newick.toString(),
+                "IsLabelledNewick", true,
+                "adjustTipHeights", false,
+                "taxa", taxonSet
+            );
+            beastObjects.put(name, parser);
+        } else {
+            // Create a dummy tree with minimal taxa
+            StringBuilder newick = new StringBuilder();
+            newick.append("(taxon1:1.0,taxon2:1.0):1.0;");
+            
+            TreeParser parser = new TreeParser();
+            parser.setID(name);
+            parser.initByName(
+                "newick", newick.toString(),
+                "IsLabelledNewick", true,
+                "adjustTipHeights", false
+            );
+            beastObjects.put(name, parser);
+        }
     }
     
     /**
