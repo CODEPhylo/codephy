@@ -220,51 +220,37 @@ public static void updateTreesWithCorrectTaxa(Map<String, BEASTInterface> beastO
             Tree oldTree = (Tree) beastObjects.get(key);
             System.out.println("Checking tree: " + key);
             
+            // Check if this tree is used by a Yule or BirthDeath prior (needs to be ultrametric)
+            boolean needsUltrametricTree = isTreeUsedByYuleOrBirthDeath(key, beastObjects);
+            
             // Find an alignment
             for (String alignmentKey : beastObjects.keySet()) {
                 if (beastObjects.get(alignmentKey) instanceof Alignment) {
                     Alignment alignment = (Alignment) beastObjects.get(alignmentKey);
                     System.out.println("Found alignment: " + alignmentKey);
                     
-                    // Create a Newick string for a pectinate tree
-                    StringBuilder newickBuilder = new StringBuilder();
                     List<String> taxaNames = alignment.getTaxaNames();
                     
-                    if (taxaNames.size() > 1) {
-                        // Start with the first two taxa
-                        newickBuilder.append("(").append(taxaNames.get(0)).append(":0.5,");
-                        
-                        // Add remaining taxa as a pectinate tree
-                        for (int i = 1; i < taxaNames.size() - 1; i++) {
-                            newickBuilder.append("(").append(taxaNames.get(i)).append(":0.5,");
-                        }
-                        
-                        // Add the last taxon and close all parentheses
-                        newickBuilder.append(taxaNames.get(taxaNames.size() - 1)).append(":0.5");
-                        
-                        // Close all open parentheses
-                        for (int i = 0; i < taxaNames.size() - 1; i++) {
-                            newickBuilder.append(")").append(":0.5");
-                        }
-                    } else if (taxaNames.size() == 1) {
-                        // Just one taxon
-                        newickBuilder.append(taxaNames.get(0));
+                    // Create a properly formatted Newick string
+                    String newick;
+                    if (needsUltrametricTree) {
+                        // Create a balanced ultrametric tree (all tips at same height)
+                        newick = createUltrametricNewick(taxaNames);
+                        System.out.println("Created ultrametric newick tree: " + newick);
+                    } else {
+                        // Create a pectinate tree (non-ultrametric is okay)
+                        newick = createPectinateNewick(taxaNames);
+                        System.out.println("Created pectinate newick tree: " + newick);
                     }
                     
-                    // Add the final semicolon
-                    newickBuilder.append(";");
-                    
-                    String newick = newickBuilder.toString();
-                    System.out.println("Created newick tree: " + newick);
-                    
                     try {
-                        // Use a constructor that doesn't require a separate taxon names parameter
+                        // Parse the tree
                         TreeParser newTree = new TreeParser();
                         newTree.setID(key);
                         newTree.initByName(
                             "newick", newick,
                             "IsLabelledNewick", true,
-                            "adjustTipHeights", false,
+                            "adjustTipHeights", needsUltrametricTree, // Force adjust tip heights for ultrametric trees
                             "singlechild", false
                         );
                         
@@ -280,6 +266,115 @@ public static void updateTreesWithCorrectTaxa(Map<String, BEASTInterface> beastO
             }
         }
     }
+}
+
+/**
+ * Check if a tree is used by a Yule or BirthDeath prior, which need ultrametric trees.
+ */
+private static boolean isTreeUsedByYuleOrBirthDeath(String treeKey, Map<String, BEASTInterface> beastObjects) {
+    // Look for Yule, BirthDeath, or similar priors that use this tree
+    for (String key : beastObjects.keySet()) {
+        if (key.endsWith("Prior")) {
+            Object obj = beastObjects.get(key);
+            if (obj instanceof beast.base.evolution.speciation.YuleModel ||
+                obj instanceof beast.base.evolution.speciation.BirthDeathGernhard08Model) {
+                
+                // Check if this prior uses the tree
+                try {
+                    Tree priorTree = (Tree) ((beast.base.evolution.speciation.SpeciesTreePrior) obj)
+                        .treeInput.get();
+                    
+                    if (priorTree.getID().equals(treeKey)) {
+                        return true;
+                    }
+                } catch (Exception e) {
+                    // If we can't check directly, assume it might need ultrametric
+                    if (key.startsWith(treeKey)) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Default: assume tree needs to be ultrametric if we can't tell
+    // This is safer for Yule and BirthDeath priors
+    return true;
+}
+
+/**
+ * Create a balanced ultrametric Newick tree string (all tips at same height).
+ */
+private static String createUltrametricNewick(List<String> taxaNames) {
+    if (taxaNames.isEmpty()) {
+        return "";
+    }
+    
+    if (taxaNames.size() == 1) {
+        return taxaNames.get(0) + ";";
+    }
+    
+    // Create a balanced tree structure
+    return createBalancedNewickSubtree(taxaNames, 0, taxaNames.size() - 1) + ";";
+}
+
+/**
+ * Recursively create a balanced ultrametric subtree.
+ */
+private static String createBalancedNewickSubtree(List<String> taxaNames, int start, int end) {
+    if (start == end) {
+        return taxaNames.get(start); // Just the taxon name for a leaf
+    }
+    
+    if (start + 1 == end) {
+        // Two taxa - create a simple pair
+        return "(" + taxaNames.get(start) + ":" + 1.0 + "," 
+             + taxaNames.get(end) + ":" + 1.0 + "):" + 1.0;
+    }
+    
+    // Split the taxa range in half and create subtrees
+    int mid = start + (end - start) / 2;
+    String leftSubtree = createBalancedNewickSubtree(taxaNames, start, mid);
+    String rightSubtree = createBalancedNewickSubtree(taxaNames, mid + 1, end);
+    
+    // Combine subtrees with equal branch lengths
+    return "(" + leftSubtree + "," + rightSubtree + "):" + 1.0;
+}
+
+/**
+ * Create a pectinate (comb-like) Newick tree string.
+ */
+private static String createPectinateNewick(List<String> taxaNames) {
+    if (taxaNames.isEmpty()) {
+        return "";
+    }
+    
+    if (taxaNames.size() == 1) {
+        return taxaNames.get(0) + ";";
+    }
+    
+    StringBuilder newickBuilder = new StringBuilder();
+    
+    // Start with the first taxon
+    newickBuilder.append("(").append(taxaNames.get(0)).append(":0.5,");
+    
+    // Add remaining taxa as a pectinate tree
+    for (int i = 1; i < taxaNames.size() - 1; i++) {
+        newickBuilder.append("(").append(taxaNames.get(i)).append(":0.5,");
+    }
+    
+    // Add the last taxon and close all parentheses
+    newickBuilder.append(taxaNames.get(taxaNames.size() - 1)).append(":0.5");
+    
+    // Close all open parentheses
+    for (int i = 0; i < taxaNames.size() - 1; i++) {
+        newickBuilder.append(")").append(":0.5");
+    }
+    
+    // Add the final semicolon
+    newickBuilder.append(";");
+    
+    return newickBuilder.toString();
 }
     
     /**

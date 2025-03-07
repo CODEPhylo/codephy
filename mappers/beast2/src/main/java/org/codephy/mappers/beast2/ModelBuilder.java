@@ -30,6 +30,8 @@ import beast.base.util.Randomizer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,6 +44,8 @@ import java.util.Map;
 public class ModelBuilder {
 
     private final Map<String, BEASTInterface> beastObjects;
+    private boolean useStrictClock = false;
+    private List<Logger> loggers = new ArrayList<>();
     
     /**
      * Constructor.
@@ -56,14 +60,20 @@ public class ModelBuilder {
      * Build a full BEAST2 model with posterior, prior, likelihood, etc.
      */
     public BEASTInterface buildFullModel(JsonNode model) throws Exception {
+        // Check if model explicitly uses a clock
+        useStrictClock = doesModelUseClock(model);
+        
         // Build tree and alignment objects
         TreeLikelihood treeLikelihood = buildTreeLikelihood(model);
         
         // Create site model if not already created
         SiteModel siteModel = setupSiteModel(model);
         
-        // Create clock model
-        StrictClockModel clockModel = setupClockModel(model);
+        // Create clock model if needed
+        StrictClockModel clockModel = null;
+        if (useStrictClock) {
+            clockModel = setupClockModel(model);
+        }
         
         // Create prior distributions
         CompoundDistribution prior = setupPrior(model, treeLikelihood);
@@ -84,6 +94,51 @@ public class ModelBuilder {
         MCMC mcmc = setupMCMC(model, posterior, state, operators);
         
         return mcmc;
+    }
+    
+    /**
+     * Check if the model explicitly uses a molecular clock
+     */
+    private boolean doesModelUseClock(JsonNode model) {
+        // Check if any of the deterministicFunctions references a clock
+        if (model.has("deterministicFunctions")) {
+            JsonNode detFunctions = model.path("deterministicFunctions");
+            Iterator<Map.Entry<String, JsonNode>> fields = detFunctions.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                JsonNode funcNode = entry.getValue();
+                String functionType = funcNode.path("function").asText();
+                
+                if (functionType.equals("strictClock") || 
+                    functionType.equals("relaxedClock") || 
+                    functionType.equals("uncorrelatedClock")) {
+                    return true;
+                }
+            }
+        }
+        
+        // Check if PhyloCTMC has a clockRate parameter
+        if (model.has("randomVariables")) {
+            JsonNode randomVars = model.path("randomVariables");
+            Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                JsonNode varNode = entry.getValue();
+                
+                JsonNode distNode = varNode.path("distribution");
+                String distType = distNode.path("type").asText();
+                
+                if (distType.equals("PhyloCTMC")) {
+                    JsonNode paramsNode = distNode.path("parameters");
+                    if (paramsNode.has("clockRate")) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // Default: do not use clock unless explicitly specified
+        return false;
     }
     
     /**
@@ -176,48 +231,73 @@ public class ModelBuilder {
         return treeLikelihood;
     }
     
-    /**
-     * Set up a site model for the likelihood calculation.
-     */
-    private SiteModel setupSiteModel(JsonNode model) throws Exception {
-        // Check if we already created a site model
-        if (beastObjects.containsKey("siteModel")) {
-            return (SiteModel) beastObjects.get("siteModel");
+/**
+ * Set up a site model for the likelihood calculation.
+ */
+private SiteModel setupSiteModel(JsonNode model) throws Exception {
+    // Check if we already created a site model
+    if (beastObjects.containsKey("siteModel")) {
+        return (SiteModel) beastObjects.get("siteModel");
+    }
+    
+    // Find substitution model
+    SubstitutionModel substModel = null;
+    if (model.has("deterministicFunctions")) {
+        JsonNode detFunctions = model.path("deterministicFunctions");
+        Iterator<Map.Entry<String, JsonNode>> fields = detFunctions.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            String name = entry.getKey();
+            JsonNode funcNode = entry.getValue();
+            
+            String functionType = funcNode.path("function").asText();
+            if (functionType.equals("hky") || functionType.equals("jc69") || functionType.equals("gtr")) {
+                substModel = (SubstitutionModel) beastObjects.get(name);
+                break;
+            }
         }
+    }
+    
+    if (substModel == null) {
+        throw new IllegalArgumentException("No substitution model found in model");
+    }
+    
+    // Check if model explicitly specifies gamma rate heterogeneity
+    boolean useGamma = false;
+    
+    // Look for siteRates or similar parameters in PhyloCTMC models
+    if (model.has("randomVariables")) {
+        JsonNode randomVars = model.path("randomVariables");
+        Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
         
-        // Find substitution model
-        SubstitutionModel substModel = null;
-        if (model.has("deterministicFunctions")) {
-            JsonNode detFunctions = model.path("deterministicFunctions");
-            Iterator<Map.Entry<String, JsonNode>> fields = detFunctions.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> entry = fields.next();
-                String name = entry.getKey();
-                JsonNode funcNode = entry.getValue();
-                
-                String functionType = funcNode.path("function").asText();
-                if (functionType.equals("hky") || functionType.equals("jc69") || functionType.equals("gtr")) {
-                    substModel = (SubstitutionModel) beastObjects.get(name);
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            JsonNode varNode = entry.getValue();
+            JsonNode distNode = varNode.path("distribution");
+            String distType = distNode.path("type").asText();
+            
+            if (distType.equals("PhyloCTMC")) {
+                // Check if PhyloCTMC specifies siteRates parameter
+                JsonNode paramsNode = distNode.path("parameters");
+                if (paramsNode.has("siteRates")) {
+                    useGamma = true;
                     break;
                 }
             }
         }
-        
-        if (substModel == null) {
-            throw new IllegalArgumentException("No substitution model found in model");
-        }
-        
-        // Create site model with gamma rate heterogeneity
-        // In BEAST 2.7.5, SiteModel.Base is abstract, use SiteModel directly
-        SiteModel siteModel = new SiteModel();
-        siteModel.setID("siteModel");
-        
-        // Create shape parameter for gamma
+    }
+    
+    // Create site model
+    SiteModel siteModel = new SiteModel();
+    siteModel.setID("siteModel");
+    
+    if (useGamma) {
+        // Create gamma shape parameter for rate heterogeneity
         RealParameter shapeParameter = new RealParameter();
         shapeParameter.setID("gammaShape");
         shapeParameter.initByName("value", "0.5", "lower", "0.0", "upper", "1000.0");
         
-        // Set up site model with the shape parameter and number of categories
+        // Set up site model with gamma rate heterogeneity
         siteModel.initByName(
             "substModel", substModel,
             "gammaCategoryCount", 4,
@@ -225,14 +305,23 @@ public class ModelBuilder {
             "proportionInvariant", "0.0"
         );
         
-        beastObjects.put("siteModel", siteModel);
+        // Store the shape parameter
         beastObjects.put("gammaShape", shapeParameter);
-        
-        return siteModel;
+    } else {
+        // Set up site model without gamma rate heterogeneity
+        siteModel.initByName(
+            "substModel", substModel,
+            "gammaCategoryCount", 1,  // No rate heterogeneity
+            "proportionInvariant", "0.0"
+        );
     }
     
+    beastObjects.put("siteModel", siteModel);
+    return siteModel;
+}
+    
     /**
-     * Set up a clock model.
+     * Set up a clock model only if explicitly needed.
      */
     private StrictClockModel setupClockModel(JsonNode model) throws Exception {
         // Check if we already created a clock model
@@ -338,7 +427,9 @@ public class ModelBuilder {
         List<StateNode> stateNodes = new ArrayList<>();
         
         for (BEASTInterface obj : beastObjects.values()) {
-            if (obj instanceof StateNode) {
+            // Skip clock rate if we're not using a clock
+            if (obj instanceof StateNode && 
+                (!obj.getID().equals("clockRate") || useStrictClock)) {
                 stateNodes.add((StateNode) obj);
             }
         }
@@ -352,49 +443,54 @@ public class ModelBuilder {
     /**
      * Set up MCMC operators.
      */
-private List<Operator> setupOperators(JsonNode model, State state) throws Exception {
-    List<Operator> operators = new ArrayList<>();
-    
-    // Make a defensive copy of the values to avoid ConcurrentModificationException
-    List<BEASTInterface> objectsCopy = new ArrayList<>(beastObjects.values());
-    
-    // Set up operators for parameters
-    for (BEASTInterface obj : objectsCopy) {
-        if (obj instanceof Parameter) {
-            Parameter param = (Parameter) obj;
-            String paramID = param.getID();
-            
-            if (param.getDimension() > 1) {
-                // Use Delta Exchange operator for multidimensional parameters
-                DeltaExchangeOperator deltaOperator = new DeltaExchangeOperator();
-                deltaOperator.setID(paramID + "Operator");
-                deltaOperator.initByName("parameter", param, "weight", 1.0);
-                operators.add(deltaOperator);
-                beastObjects.put(paramID + "Operator", deltaOperator);
-            } else {
-                // Use Scale operator for scalar parameters
-                ScaleOperator operator = new ScaleOperator();
-                operator.setID(paramID + "Operator");
-                operator.initByName("parameter", param, "weight", 1.0);
-                operators.add(operator);
-                beastObjects.put(paramID + "Operator", operator);
+    private List<Operator> setupOperators(JsonNode model, State state) throws Exception {
+        List<Operator> operators = new ArrayList<>();
+        
+        // Make a defensive copy of the values to avoid ConcurrentModificationException
+        List<BEASTInterface> objectsCopy = new ArrayList<>(beastObjects.values());
+        
+        // Set up operators for parameters
+        for (BEASTInterface obj : objectsCopy) {
+            if (obj instanceof Parameter) {
+                Parameter param = (Parameter) obj;
+                String paramID = param.getID();
+                
+                // Skip clock rate if we're not using a clock
+                if (paramID.equals("clockRate") && !useStrictClock) {
+                    continue;
+                }
+                
+                if (param.getDimension() > 1) {
+                    // Use Delta Exchange operator for multidimensional parameters
+                    DeltaExchangeOperator deltaOperator = new DeltaExchangeOperator();
+                    deltaOperator.setID(paramID + "Operator");
+                    deltaOperator.initByName("parameter", param, "weight", 1.0);
+                    operators.add(deltaOperator);
+                    beastObjects.put(paramID + "Operator", deltaOperator);
+                } else {
+                    // Use Scale operator for scalar parameters
+                    ScaleOperator operator = new ScaleOperator();
+                    operator.setID(paramID + "Operator");
+                    operator.initByName("parameter", param, "weight", 1.0);
+                    operators.add(operator);
+                    beastObjects.put(paramID + "Operator", operator);
+                }
             }
         }
-    }
-    
-    // Set up operators for trees
-    for (BEASTInterface obj : objectsCopy) {
-        if (obj instanceof Tree) {
-            Tree tree = (Tree) obj;
-            String treeID = tree.getID();
-            
-            // SubtreeSlide operator
-            SubtreeSlide subtreeSlide = new SubtreeSlide();
-            subtreeSlide.setID(treeID + "SubtreeSlide");
-            subtreeSlide.initByName("tree", tree, "weight", 5.0);
-            operators.add(subtreeSlide);
-            beastObjects.put(treeID + "SubtreeSlide", subtreeSlide);
-            
+        
+        // Set up operators for trees
+        for (BEASTInterface obj : objectsCopy) {
+            if (obj instanceof Tree) {
+                Tree tree = (Tree) obj;
+                String treeID = tree.getID();
+                
+                // SubtreeSlide operator
+                SubtreeSlide subtreeSlide = new SubtreeSlide();
+                subtreeSlide.setID(treeID + "SubtreeSlide");
+                subtreeSlide.initByName("tree", tree, "weight", 5.0);
+                operators.add(subtreeSlide);
+                beastObjects.put(treeID + "SubtreeSlide", subtreeSlide);
+                
                 // Narrow Exchange operator
                 Exchange narrowExchange = new Exchange();
                 narrowExchange.setID(treeID + "NarrowExchange");
@@ -445,76 +541,102 @@ private List<Operator> setupOperators(JsonNode model, State state) throws Except
     /**
      * Set up the MCMC object.
      */
-private MCMC setupMCMC(JsonNode model, CompoundDistribution posterior, 
-                      State state, List<Operator> operators) throws Exception {
-    // Create MCMC object
-    MCMC mcmc = new MCMC();
-    mcmc.setID("mcmc");
+    private MCMC setupMCMC(JsonNode model, CompoundDistribution posterior, 
+                         State state, List<Operator> operators) throws Exception {
+        // Create MCMC object
+        MCMC mcmc = new MCMC();
+        mcmc.setID("mcmc");
+        
+        // Create loggers
+        loggers = new ArrayList<>();
+        
+        // 1. Console logger
+        Logger consoleLogger = new Logger();
+        consoleLogger.setID("consoleLogger");
+        // Add items to log for console
+        List<BEASTInterface> consoleLogItems = new ArrayList<>();
+        consoleLogItems.add(posterior); // Always log the posterior
+        consoleLogger.initByName(
+            "logEvery", 1000,
+            "log", consoleLogItems
+        );
+        loggers.add(consoleLogger);
+        
+        // 2. File logger for parameters
+        Logger fileLogger = new Logger();
+        fileLogger.setID("fileLogger");
+        // Add items to log for file
+        List<BEASTInterface> fileLogItems = new ArrayList<>();
+        fileLogItems.add(posterior); // Always log the posterior
+        // Add all parameters to log
+        for (BEASTInterface obj : beastObjects.values()) {
+            // Skip clock rate if we're not using a clock
+            if (obj instanceof Parameter && !(obj instanceof Tree) && 
+                (!obj.getID().equals("clockRate") || useStrictClock)) {
+                fileLogItems.add(obj);
+            }
+        }
+        fileLogger.initByName(
+            "fileName", "model.log",  // Default name, will be updated by app
+            "logEvery", 1000,
+            "log", fileLogItems
+        );
+        loggers.add(fileLogger);
+        
+        // 3. Tree logger
+        Logger treeLogger = new Logger();
+        treeLogger.setID("treeLogger");
+        // Add trees to log
+        List<BEASTInterface> treeLogItems = new ArrayList<>();
+        // Find trees to log
+        for (BEASTInterface obj : beastObjects.values()) {
+            if (obj instanceof Tree) {
+                treeLogItems.add(obj);
+            }
+        }
+        treeLogger.initByName(
+            "fileName", "model.trees",  // Default name, will be updated by app
+            "logEvery", 1000,
+            "mode", "tree",
+            "log", treeLogItems
+        );
+        loggers.add(treeLogger);
+        
+        // Set up chainLength, state, operators, and posterior
+        mcmc.initByName(
+            "chainLength", Long.valueOf(10000000),
+            "state", state,
+            "distribution", posterior,
+            "operator", operators,
+            "logger", loggers
+        );
+        
+        beastObjects.put("mcmc", mcmc);
+        
+        return mcmc;
+    }
     
-    // Create loggers
-    List<Logger> loggers = new ArrayList<>();
-    
-    // 1. Console logger
-    Logger consoleLogger = new Logger();
-    consoleLogger.setID("consoleLogger");
-    // Add items to log for console
-    List<BEASTInterface> consoleLogItems = new ArrayList<>();
-    consoleLogItems.add(posterior); // Always log the posterior
-    consoleLogger.initByName(
-        "logEvery", 1000,
-        "log", consoleLogItems
-    );
-    loggers.add(consoleLogger);
-    
-    // 2. File logger for parameters
-    Logger fileLogger = new Logger();
-    fileLogger.setID("fileLogger");
-    // Add items to log for file
-    List<BEASTInterface> fileLogItems = new ArrayList<>();
-    fileLogItems.add(posterior); // Always log the posterior
-    // Add all parameters to log
-    for (BEASTInterface obj : beastObjects.values()) {
-        if (obj instanceof Parameter && !(obj instanceof Tree)) {
-            fileLogItems.add(obj);
+    /**
+     * Update log file paths to use a specific output directory and base name
+     */
+    public void updateLogFilePaths(String outputDir, String baseName) {
+        for (Logger logger : loggers) {
+            String loggerId = logger.getID();
+            
+            if (loggerId.equals("fileLogger")) {
+                String newPath = Paths.get(outputDir, baseName + ".log").toString();
+                logger.setInputValue("fileName", newPath);
+            } else if (loggerId.equals("treeLogger")) {
+                String newPath = Paths.get(outputDir, baseName + ".trees").toString();
+                logger.setInputValue("fileName", newPath);
+            }
         }
     }
-    fileLogger.initByName(
-        "fileName", "$(filebase).log",
-        "logEvery", 1000,
-        "log", fileLogItems
-    );
-    loggers.add(fileLogger);
     
-    // 3. Tree logger
-    Logger treeLogger = new Logger();
-    treeLogger.setID("treeLogger");
-    // Add trees to log
-    List<BEASTInterface> treeLogItems = new ArrayList<>();
-    // Find trees to log
-    for (BEASTInterface obj : beastObjects.values()) {
-        if (obj instanceof Tree) {
-            treeLogItems.add(obj);
-        }
+    /**
+     * Get the list of loggers
+     */
+    public List<Logger> getLoggers() {
+        return loggers;
     }
-    treeLogger.initByName(
-        "fileName", "$(filebase).trees",
-        "logEvery", 1000,
-        "mode", "tree",
-        "log", treeLogItems
-    );
-    loggers.add(treeLogger);
-    
-    // Set up chainLength, state, operators, and posterior
-    mcmc.initByName(
-        "chainLength", Long.valueOf(10000000),
-        "state", state,
-        "distribution", posterior,
-        "operator", operators,
-        "logger", loggers
-    );
-    
-    beastObjects.put("mcmc", mcmc);
-    
-    return mcmc;
-}
 }
