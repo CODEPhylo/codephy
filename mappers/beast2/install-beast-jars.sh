@@ -1,40 +1,83 @@
 #!/bin/bash
+#
+# Script to install BEAST2 JARs to local Maven repository
+# Usage: ./install-beast-jars.sh [path-to-beast2]
+#
 
-# Set the base directory for BEAST
-BEAST_DIR="/Applications/BEAST 2.7.5/lib/packages"
+set -e
 
-# Make sure the directory exists
-if [ ! -d "$BEAST_DIR" ]; then
-    echo "Error: BEAST directory not found at $BEAST_DIR"
+# Determine BEAST2 location
+if [ -z "$1" ]; then
+    # Try to find BEAST2 in common locations
+    if [ -d "/Applications/BEAST 2.7.5" ]; then
+        BEAST_PATH="/Applications/BEAST 2.7.5"
+    elif [ -d "$HOME/Applications/BEAST 2.7.5" ]; then
+        BEAST_PATH="$HOME/Applications/BEAST 2.7.5"
+    elif [ -d "/usr/local/share/beast" ]; then
+        BEAST_PATH="/usr/local/share/beast"
+    else
+        echo "Error: BEAST2 path not provided and couldn't be found automatically."
+        echo "Usage: $0 [path-to-beast2]"
+        exit 1
+    fi
+else
+    BEAST_PATH="$1"
+fi
+
+echo "Using BEAST2 installation at: $BEAST_PATH"
+
+# Check if the path exists
+if [ ! -d "$BEAST_PATH" ]; then
+    echo "Error: BEAST2 directory not found at $BEAST_PATH"
     exit 1
 fi
 
-# Function to install a JAR file
-install_jar() {
-    local jarFile="$1"
-    local artifactId="$2"
-    local version="$3"
-    
-    # Extract just the filename without path
-    local fileName=$(basename "$jarFile")
-    
-    echo "Installing $fileName to local Maven repository..."
-    
-    mvn install:install-file \
-        -Dfile="$jarFile" \
-        -DgroupId="beast2" \
-        -DartifactId="$artifactId" \
-        -Dversion="$version" \
-        -Dpackaging="jar" \
-        -DgeneratePom=true
-        
-    echo "Installation of $fileName completed."
-}
+# Check for required JAR files
+BEAST_BASE_JAR="$BEAST_PATH/lib/packages/BEAST.base.jar"
+BEAST_APP_JAR="$BEAST_PATH/lib/packages/BEAST.app.jar"
+BEAST_LAUNCHER_JAR="$BEAST_PATH/lib/launcher.jar"
 
-# Install each JAR file
-install_jar "$BEAST_DIR/BEAST.app.jar" "beast-app" "2.7.5"
-install_jar "$BEAST_DIR/BEAST.base.jar" "beast-base" "2.7.5"
-install_jar "$BEAST_DIR/BEAST.app.src.jar" "beast-app-src" "2.7.5"
-install_jar "$BEAST_DIR/BEAST.base.src.jar" "beast-base-src" "2.7.5"
+if [ ! -f "$BEAST_BASE_JAR" ]; then
+    echo "Error: BEAST.base.jar not found at $BEAST_BASE_JAR"
+    exit 1
+fi
 
-echo "All BEAST JAR files have been installed to your local Maven repository."
+if [ ! -f "$BEAST_APP_JAR" ]; then
+    echo "Error: BEAST.app.jar not found at $BEAST_APP_JAR"
+    exit 1
+fi
+
+if [ ! -f "$BEAST_LAUNCHER_JAR" ]; then
+    echo "Error: launcher.jar not found at $BEAST_LAUNCHER_JAR"
+    exit 1
+fi
+
+# Install BEAST.base.jar
+echo "Installing BEAST.base.jar to local Maven repository..."
+mvn install:install-file \
+  -Dfile="$BEAST_BASE_JAR" \
+  -DgroupId=beast2 \
+  -DartifactId=beast-base \
+  -Dversion=2.7.5 \
+  -Dpackaging=jar
+
+# Install BEAST.app.jar
+echo "Installing BEAST.app.jar to local Maven repository..."
+mvn install:install-file \
+  -Dfile="$BEAST_APP_JAR" \
+  -DgroupId=beast2 \
+  -DartifactId=beast-app \
+  -Dversion=2.7.5 \
+  -Dpackaging=jar
+
+# Install launcher.jar
+echo "Installing launcher.jar to local Maven repository..."
+mvn install:install-file \
+  -Dfile="$BEAST_LAUNCHER_JAR" \
+  -DgroupId=beast2 \
+  -DartifactId=beast-launcher \
+  -Dversion=2.7.5 \
+  -Dpackaging=jar
+
+echo "All BEAST2 dependencies installed successfully!"
+echo "You can now build the Codephy BEAST2 mapper with 'mvn clean package'"
