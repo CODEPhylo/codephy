@@ -345,38 +345,84 @@ private SiteModel setupSiteModel(JsonNode model) throws Exception {
         return clockModel;
     }
     
-    /**
-     * Set up the prior distribution.
-     */
-    private CompoundDistribution setupPrior(JsonNode model, TreeLikelihood treeLikelihood) throws Exception {
-        // Create a compound distribution for the prior
-        CompoundDistribution prior = new CompoundDistribution();
-        prior.setID("prior");
-        
-        // Collect all prior distributions
-        List<Distribution> priors = new ArrayList<>();
-        
-        // Add all tree priors (from TreeDistributionsMapper)
-        for (String key : beastObjects.keySet()) {
-            if (key.endsWith("Prior") && beastObjects.get(key) instanceof Distribution) {
-                priors.add((Distribution) beastObjects.get(key));
-            }
+/**
+ * Set up the prior distribution.
+ */
+private CompoundDistribution setupPrior(JsonNode model, TreeLikelihood treeLikelihood) throws Exception {
+    // Create a compound distribution for the prior
+    CompoundDistribution prior = new CompoundDistribution();
+    prior.setID("prior");
+    
+    // Collect all prior distributions
+    List<Distribution> priors = new ArrayList<>();
+    
+    // Create a map of distribution IDs to random variable names that have observed values
+    Map<String, Boolean> hasObservationMap = buildObservationMap(model);
+    
+    // First, add distributions explicitly marked as priors
+    for (String key : beastObjects.keySet()) {
+        if (key.endsWith("Prior") && beastObjects.get(key) instanceof Distribution) {
+            priors.add((Distribution) beastObjects.get(key));
         }
-        
-        // Add all parameter priors (from StandardDistributionsMapper)
-        for (BEASTInterface obj : beastObjects.values()) {
-            if (obj instanceof Distribution && !priors.contains(obj) && 
-                !obj.getID().equals("likelihood") && !obj.getID().equals("posterior")) {
-                priors.add((Distribution) obj);
-            }
-        }
-        
-        prior.initByName("distribution", priors);
-        beastObjects.put("prior", prior);
-        
-        return prior;
     }
     
+    // Then, add remaining distributions without observed values
+    for (BEASTInterface obj : beastObjects.values()) {
+        if (obj instanceof Distribution) {
+            Distribution dist = (Distribution) obj;
+            String id = dist.getID();
+            
+            // Skip if already added, or if it's likelihood/posterior
+            if (priors.contains(dist) || 
+                id.equals("likelihood") || 
+                id.equals("posterior")) {
+                continue;
+            }
+            
+            // Skip if this distribution corresponds to a random variable with observed data
+            if (hasObservationMap.containsKey(id) && hasObservationMap.get(id)) {
+                continue;
+            }
+            
+            // Skip TreeLikelihood objects as they should only be in the likelihood
+            if (dist instanceof GenericTreeLikelihood) {
+                continue;
+            }
+            
+            // Otherwise, add it to the prior
+            priors.add(dist);
+        }
+    }
+    
+    prior.initByName("distribution", priors);
+    beastObjects.put("prior", prior);
+    
+    return prior;
+}
+
+/**
+ * Build a map of random variable names to whether they have observed values
+ */
+private Map<String, Boolean> buildObservationMap(JsonNode model) {
+    Map<String, Boolean> observationMap = new HashMap<>();
+    
+    if (model.has("randomVariables")) {
+        JsonNode randomVars = model.path("randomVariables");
+        Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
+        
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            String varName = entry.getKey();
+            JsonNode varNode = entry.getValue();
+            
+            // Check if this random variable has an observedValue
+            boolean hasObservation = varNode.has("observedValue");
+            observationMap.put(varName, hasObservation);
+        }
+    }
+    
+    return observationMap;
+}    
     /**
      * Set up the likelihood distribution.
      */
