@@ -92,31 +92,154 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M7</version>
             </plugin>
+            
             <!-- Plugin to create an executable JAR with dependencies -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>3.4.2</version>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass>org.codephy.mappers.beast2.examples.MapperExample</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
                 <executions>
+                    <!-- First execution: original library jar with MapperExample as main class -->
                     <execution>
-                        <id>make-assembly</id>
+                        <id>make-mapper-assembly</id>
                         <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
+                        <configuration>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                            <finalName>${project.artifactId}-${project.version}</finalName>
+                            <archive>
+                                <manifest>
+                                    <mainClass>org.codephy.mappers.beast2.examples.MapperExample</mainClass>
+                                </manifest>
+                            </archive>
+                        </configuration>
+                    </execution>
+                    
+                    <!-- Second execution: application jar with CodephyMapperApp as main class -->
+                    <execution>
+                        <id>make-app-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
+                            <finalName>codephy-app-${project.version}</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <archive>
+                                <manifest>
+                                    <mainClass>org.codephy.beast2.app.CodephyMapperApp</mainClass>
+                                </manifest>
+                            </archive>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            
+            <!-- Plugin to generate the command-line script -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>create-shell-script</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <echo file="${project.build.directory}/codephyMapper">#!/bin/sh
+
+# Determine the location of this script
+if [ -z "$SCRIPT_LOCATION" ]; then
+    ## resolve links - $0 may be a link to application
+    PRG="$0"
+    # need this for relative symlinks
+    while [ -h "$PRG" ]; do
+        ls=`ls -ld "$PRG"`
+        link=`expr "$ls" : '.*-> \(.*\)$'`
+        if expr "$link" : '/.*' > /dev/null; then
+            PRG="$link"
+        else
+            PRG="`dirname "$PRG"`/$link"
+        fi
+    done
+    saveddir=`pwd`
+    SCRIPT_LOCATION=`dirname "$PRG"`
+    cd "$saveddir"
+fi
+
+# Find BEAST installation
+if [ -z "$BEAST" ]; then
+    if [ -d "/Applications/BEAST ${beast2.version}" ]; then
+        BEAST="/Applications/BEAST ${beast2.version}"
+    elif [ -d "$HOME/Applications/BEAST ${beast2.version}" ]; then
+        BEAST="$HOME/Applications/BEAST ${beast2.version}"
+    elif [ -d "/usr/local/share/beast" ]; then
+        BEAST="/usr/local/share/beast"
+    else
+        echo "Cannot find BEAST2 installation. Please set BEAST environment variable."
+        exit 1
+    fi
+fi
+
+# Set Java
+JAVA="java"
+if [ -x "${BEAST}/jre/bin/java" ]; then
+    JAVA="${BEAST}/jre/bin/java"
+fi
+
+# Run the application
+"$JAVA" -Dlauncher.wait.for.exit=true -Xss256m -Xmx4g -jar "${SCRIPT_LOCATION}/codephy-app-${project.version}.jar" $@
+</echo>
+                                <chmod file="${project.build.directory}/codephyMapper" perm="755"/>
+                            </target>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
     </build>
+    
+    <profiles>
+        <profile>
+            <id>install-local</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>install-to-user-bin</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <mkdir dir="${user.home}/bin"/>
+                                        <copy file="${project.build.directory}/codephy-app-${project.version}.jar" 
+                                              todir="${user.home}/bin" />
+                                        <copy file="${project.build.directory}/codephyMapper" 
+                                              todir="${user.home}/bin" />
+                                        <chmod file="${user.home}/bin/codephyMapper" perm="755"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
