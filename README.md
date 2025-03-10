@@ -1,4 +1,4 @@
-# Codephy: A Portable format for specifying phylogenetic models
+# Codephy: A portable format for specifying phylogenetic models
 
 Codephy is a proposal for a JSON-based format for specifying probabilistic phylogenetic models in a way that's portable across multiple inference engines. 
 It's aim is to foster interoperability and facilitate more efficient development of tools for constructing and manipulating phylogenetic models.
