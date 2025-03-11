@@ -24,8 +24,10 @@ Here's a simple example of a random variable representing a parameter drawn from
   "distribution": {
     "type": "LogNormal",
     "generates": "REAL",
-    "meanlog": 1.0,
-    "sdlog": 0.5
+    "parameters": {
+      "meanlog": 1.0,
+      "sdlog": 0.5
+    }
   }
 }
 ```
@@ -40,7 +42,9 @@ Random variables can also represent more complex entities like phylogenetic tree
     "type": "Yule",
     "generates": "TREE",
     "parameters": {
-      "birthRate": "birthRateParam"
+      "birthRate": {
+        "variable": "birthRateParam"
+      }
     }
   }
 }
@@ -58,8 +62,12 @@ A key feature of Codephy is the ability to designate random variables as observe
     "type": "PhyloCTMC",
     "generates": "ALIGNMENT",
     "parameters": {
-      "tree": "tree",
-      "Q": "substitutionModel"
+      "tree": {
+        "variable": "tree"
+      },
+      "Q": {
+        "variable": "substitutionModel"
+      }
     }
   },
   "observedValue": [
@@ -87,8 +95,12 @@ Here's an example of a deterministic function representing an HKY substitution m
 "substitutionModel": {
   "function": "hky",
   "arguments": {
-    "kappa": { "variable": "kappaParam" },
-    "baseFrequencies": { "variable": "baseFreqParam" }
+    "kappa": {
+      "variable": "kappaParam"
+    },
+    "baseFrequencies": {
+      "variable": "baseFreqParam"
+    }
   }
 }
 ```
@@ -101,13 +113,45 @@ Deterministic functions can also perform simpler operations like extracting elem
 "birthRate": {
   "function": "vectorElement",
   "arguments": {
-    "vector": { "variable": "birthDeathParams" },
+    "vector": {
+      "variable": "birthDeathParams"
+    },
     "index": 0
   }
 }
 ```
 
 This defines a function that extracts the first element (index 0) from the `birthDeathParams` vector, which might be a multivariate random variable.
+
+## Parameter values
+
+In Codephy, parameter values can be specified in several ways:
+
+1. **Direct values**: Simple numeric or string values
+   ```json
+   "sdlog": 0.5
+   ```
+
+2. **References to variables**: References to other random variables
+   ```json
+   "birthRate": {
+     "variable": "birthRateParam"
+   }
+   ```
+
+3. **Mathematical expressions**: Formulas combining variables and constants
+   ```json
+   "rate": {
+     "expression": "globalRate * localMultiplier"
+   }
+   ```
+
+4. **Arrays**: Lists of values, which can themselves be any of these types
+   ```json
+   "alpha": [1.0, 1.0, 1.0, 1.0]
+   ```
+
+This flexibility allows for complex parameter relationships while maintaining a clear structure.
 
 ## Dependency structure
 
@@ -131,31 +175,37 @@ The Codephy schema defines several standard distribution types, each with its ow
 
 | Distribution | Generates | Parameters | Description |
 |--------------|-----------|------------|-------------|
-| `LogNormal` | `REAL` | `meanlog`, `sdlog` | Log-normal distribution for continuous positive parameters |
-| `Gamma` | `REAL` | `shape`, `rate` | Gamma distribution for continuous positive parameters |
-| `Beta` | `REAL` | `alpha`, `beta` | Beta distribution for parameters in (0,1) |
-| `Exponential` | `REAL` | `rate` | Exponential distribution for rate parameters |
+| `LogNormal` | `REAL`, `REAL_VECTOR` | `meanlog`, `sdlog`, optional `dimension` | Log-normal distribution for continuous positive parameters |
+| `Normal` | `REAL`, `REAL_VECTOR` | `mean`, `sd`, optional `dimension` | Normal distribution for real-valued parameters |
+| `Gamma` | `REAL`, `REAL_VECTOR` | `shape`, `rate`, optional `dimension` | Gamma distribution for continuous positive parameters |
+| `Beta` | `REAL`, `REAL_VECTOR` | `alpha`, `beta`, optional `dimension` | Beta distribution for parameters in (0,1) |
+| `Exponential` | `REAL`, `REAL_VECTOR` | `rate`, optional `dimension` | Exponential distribution for rate parameters |
+| `Uniform` | `REAL`, `REAL_VECTOR` | `lower`, `upper`, optional `dimension` | Uniform distribution for bounded parameters |
 | `Dirichlet` | `REAL_VECTOR` | `alpha` (array) | Dirichlet distribution for vector parameters that sum to 1 |
 | `MultivariateNormal` | `REAL_VECTOR` | `mean` (array), `covariance` (matrix) | Multivariate normal for correlated parameters |
+| `Mixture` | Varies | `components`, `weights` | Mixture distribution for complex patterns |
+| `PosteriorApproximation` | `REAL`, `REAL_VECTOR` | `source`, `approximation` | Using results from previous studies as priors |
 | `Yule` | `TREE` | `birthRate` | Yule process for generating trees |
-| `PhyloCTMC` | `ALIGNMENT` | `tree`, `Q`, optional `siteRates` | Continuous-time Markov chain for sequences |
+| `BirthDeath` | `TREE` | `birthRate`, `deathRate`, optional `rootHeight` | Birth-Death process for trees |
+| `Coalescent` | `TREE` | `populationSize` | Coalescent process for trees |
+| `ConstrainedYule` | `TREE` | `birthRate`, optional constraints | Yule with topological constraints |
+| `PhyloCTMC` | `ALIGNMENT` | `tree`, `Q`, optional parameters | Continuous-time Markov chain for sequences |
 
-More complex distributions (like mixtures and hierarchical priors) are covered in the [Complex Priors](08-complex-priors.md) section.
+When `generates` is `REAL_VECTOR`, many distributions accept a `dimension` parameter to specify the number of IID samples.
 
-## Function types and arguments
+More complex distributions (like mixtures and hierarchical priors) are covered in the Complex Priors section of the documentation.
 
-Codephy doesn't prescribe a fixed set of function types, as different inference engines may support different deterministic transformations. However, some common functions include:
+## Constraints
 
-| Function | Arguments | Description |
-|----------|-----------|-------------|
-| `hky` | `kappa`, `baseFrequencies` | HKY substitution model |
-| `gtr` | `rateMatrix`, `baseFrequencies` | GTR substitution model |
-| `vectorElement` | `vector`, `index` | Extract an element from a vector |
-| `matrixElement` | `matrix`, `row`, `col` | Extract an element from a matrix |
-| `add`, `multiply`, etc. | varies | Basic arithmetic operations |
-| `exp`, `log`, etc. | varies | Common mathematical functions |
+Codephy allows for explicit specification of constraints on parameters through the `constraints` section. These can include:
 
-Inference engines should document which function types they support and the expected arguments for each.
+- `lessThan`: Ensures one parameter is less than another
+- `greaterThan`: Ensures one parameter is greater than another
+- `equals`: Enforces equality between parameters or with a constant
+- `bounded`: Restricts a parameter to a specific range
+- `sumTo`: Requires a set of parameters to sum to a target value
+
+These constraints are important for many models in phylogenetics, such as ensuring rates sum to 1.0 or maintaining relative ordering of time points.
 
 ## JSON representation
 
@@ -199,4 +249,4 @@ The separation of random variables and deterministic functions is central to the
 - Enables validation of model correctness
 - Facilitates mapping to different inference engine implementations
 
-In the next section, we'll look at complete examples of phylogenetic models specified in Codephy format.
+The schema provides a structured way to express complex phylogenetic models with proper parameter dependencies, constraints, and metadata.
