@@ -28,28 +28,34 @@ In Codephy, we represent hierarchical priors by defining random variables for th
     "popSizeMean": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
-        "meanlog": 0.0,
-        "sdlog": 1.0
+        "generates": "Real",
+        "parameters": {
+          "meanlog": 0.0,
+          "sdlog": 1.0
+        }
       }
     },
     "popSizeCV": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
-        "meanlog": -1.0,
-        "sdlog": 0.5
+        "generates": "Real",
+        "parameters": {
+          "meanlog": -1.0,
+          "sdlog": 0.5
+        }
       }
     },
     "popSize": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
-        "meanlog": {
-          "variable": "popSizeMean"
-        },
-        "sdlog": {
-          "expression": "popSizeMean * popSizeCV"
+        "generates": "Real",
+        "parameters": {
+          "meanlog": {
+            "variable": "popSizeMean"
+          },
+          "sdlog": {
+            "expression": "popSizeMean * popSizeCV"
+          }
         }
       }
     }
@@ -112,30 +118,34 @@ Codephy supports mixture distributions through a dedicated `Mixture` type:
     "gammaShape": {
       "distribution": {
         "type": "Exponential",
-        "generates": "REAL",
-        "rate": 1.0
+        "generates": "Real",
+        "parameters": {
+          "rate": 1.0
+        }
       }
     },
     "siteRates": {
       "distribution": {
         "type": "Mixture",
-        "generates": "REAL_VECTOR",
-        "components": [
-          {
-            "distribution": "Gamma",
-            "shape": {
-              "variable": "gammaShape"
-            },
-            "rate": {
-              "variable": "gammaShape"
-            },
-            "discretization": {
-              "type": "quantile",
-              "categories": 4
+        "generates": "RealVector",
+        "parameters": {
+          "components": [
+            {
+              "distribution": "Gamma",
+              "shape": {
+                "variable": "gammaShape"
+              },
+              "rate": {
+                "variable": "gammaShape"
+              },
+              "discretization": {
+                "type": "quantile",
+                "categories": 4
+              }
             }
-          }
-        ],
-        "weights": [1.0]
+          ],
+          "weights": [1.0]
+        }
       }
     }
   }
@@ -171,28 +181,30 @@ For more complex mixtures, multiple components with different weights can be spe
 ```json
 "distribution": {
   "type": "Mixture",
-  "generates": "REAL_VECTOR",
-  "components": [
-    {
-      "distribution": "Gamma",
-      "shape": 0.5,
-      "rate": 0.5,
-      "discretization": {
-        "type": "quantile",
-        "categories": 4
+  "generates": "RealVector",
+  "parameters": {
+    "components": [
+      {
+        "distribution": "Gamma",
+        "shape": 0.5,
+        "rate": 0.5,
+        "discretization": {
+          "type": "quantile",
+          "categories": 4
+        }
+      },
+      {
+        "distribution": "LogNormal",
+        "meanlog": 0.0,
+        "sdlog": 1.0,
+        "discretization": {
+          "type": "quantile",
+          "categories": 4
+        }
       }
-    },
-    {
-      "distribution": "LogNormal",
-      "meanlog": 0.0,
-      "sdlog": 1.0,
-      "discretization": {
-        "type": "quantile",
-        "categories": 4
-      }
-    }
-  ],
-  "weights": [0.7, 0.3]
+    ],
+    "weights": [0.7, 0.3]
+  }
 }
 ```
 
@@ -209,12 +221,14 @@ Codephy handles these through multivariate distributions and constraints:
     "birthDeathParams": {
       "distribution": {
         "type": "MultivariateNormal",
-        "generates": "REAL_VECTOR",
-        "mean": [0.1, 0.05],
-        "covariance": [
-          [0.01, 0.005],
-          [0.005, 0.01]
-        ]
+        "generates": "RealVector",
+        "parameters": {
+          "mean": [0.1, 0.05],
+          "covariance": [
+            [0.01, 0.005],
+            [0.005, 0.01]
+          ]
+        }
       }
     }
   },
@@ -222,21 +236,21 @@ Codephy handles these through multivariate distributions and constraints:
     "birthRate": {
       "function": "vectorElement",
       "arguments": {
-        "vector": "birthDeathParams",
+        "vector": { "variable": "birthDeathParams" },
         "index": 0
       }
     },
     "deathRate": {
       "function": "vectorElement",
       "arguments": {
-        "vector": "birthDeathParams",
+        "vector": { "variable": "birthDeathParams" },
         "index": 1
       }
     }
   },
   "constraints": [
     {
-      "type": "lessThan",
+      "type": "LessThan",
       "left": "deathRate",
       "right": "birthRate"
     }
@@ -257,12 +271,14 @@ Multivariate distributions like `MultivariateNormal` capture correlations betwee
 ```json
 "distribution": {
   "type": "MultivariateNormal",
-  "generates": "REAL_VECTOR",
-  "mean": [0.1, 0.05],
-  "covariance": [
-    [0.01, 0.005],
-    [0.005, 0.01]
-  ]
+  "generates": "RealVector",
+  "parameters": {
+    "mean": [0.1, 0.05],
+    "covariance": [
+      [0.01, 0.005],
+      [0.005, 0.01]
+    ]
+  }
 }
 ```
 
@@ -283,7 +299,7 @@ To use individual elements of a multivariate distribution, deterministic functio
 "birthRate": {
   "function": "vectorElement",
   "arguments": {
-    "vector": "birthDeathParams",
+    "vector": { "variable": "birthDeathParams" },
     "index": 0
   }
 }
@@ -298,7 +314,7 @@ The `constraints` section specifies relationships that must hold between paramet
 ```json
 "constraints": [
   {
-    "type": "lessThan",
+    "type": "LessThan",
     "left": "deathRate",
     "right": "birthRate"
   }
@@ -308,11 +324,11 @@ The `constraints` section specifies relationships that must hold between paramet
 This constraint requires that `deathRate` is less than `birthRate`, which is a common requirement in birth-death process models.
 
 Available constraint types include:
-- **lessThan**: Left value must be less than right value
-- **greaterThan**: Left value must be greater than right value
-- **equals**: Left value must equal right value
-- **bounded**: Value must be within specified bounds
-- **sumTo**: A set of values must sum to a specified total
+- **LessThan**: Left value must be less than right value
+- **GreaterThan**: Left value must be greater than right value
+- **Equals**: Left value must equal right value
+- **Bounded**: Value must be within specified bounds
+- **SumTo**: A set of values must sum to a specified total
 
 ## Informative priors from previous studies
 
@@ -324,15 +340,17 @@ A common scenario in Bayesian phylogenetics is to use posterior distributions fr
     "substitutionRate": {
       "distribution": {
         "type": "PosteriorApproximation",
-        "generates": "REAL",
-        "source": {
-          "doi": "10.1093/sysbio/example",
-          "parameter": "clockRate"
-        },
-        "approximation": {
-          "type": "LogNormal",
-          "meanlog": -5.2,
-          "sdlog": 0.3
+        "generates": "Real",
+        "parameters": {
+          "source": {
+            "doi": "10.1093/sysbio/example",
+            "parameter": "clockRate"
+          },
+          "approximation": {
+            "type": "LogNormal",
+            "meanlog": -5.2,
+            "sdlog": 0.3
+          }
         }
       }
     }
@@ -358,26 +376,28 @@ Codephy extends the basic formats to handle these:
     "treeHeightPrior": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
-        "meanlog": 4.0,
-        "sdlog": 0.5
+        "generates": "Real",
+        "parameters": {
+          "meanlog": 4.0,
+          "sdlog": 0.5
+        }
       }
     },
     "tree": {
       "distribution": {
         "type": "ConstrainedYule",
-        "generates": "TREE",
+        "generates": "Tree",
         "parameters": {
-          "birthRate": "birthRateParam",
+          "birthRate": { "variable": "birthRateParam" },
           "rootHeight": {
             "variable": "treeHeightPrior"
-          }
-        },
-        "constraints": {
-          "topology": {
-            "type": "monophyly",
-            "taxonSet": ["Homo", "Pan", "Gorilla"],
-            "clade": "Hominidae"
+          },
+          "constraints": {
+            "topology": {
+              "type": "monophyly",
+              "taxonSet": ["Homo", "Pan", "Gorilla"],
+              "clade": "Hominidae"
+            }
           }
         }
       }
@@ -403,18 +423,18 @@ The `ConstrainedYule` distribution extends the basic Yule process with additiona
 ```json
 "distribution": {
   "type": "ConstrainedYule",
-  "generates": "TREE",
+  "generates": "Tree",
   "parameters": {
-    "birthRate": "birthRateParam",
+    "birthRate": { "variable": "birthRateParam" },
     "rootHeight": {
       "variable": "treeHeightPrior"
-    }
-  },
-  "constraints": {
-    "topology": {
-      "type": "monophyly",
-      "taxonSet": ["Homo", "Pan", "Gorilla"],
-      "clade": "Hominidae"
+    },
+    "constraints": {
+      "topology": {
+        "type": "monophyly",
+        "taxonSet": ["Homo", "Pan", "Gorilla"],
+        "clade": "Hominidae"
+      }
     }
   }
 }
@@ -454,8 +474,10 @@ For calibrated clades, age constraints can be specified:
       "age": {
         "distribution": {
           "type": "LogNormal",
-          "meanlog": 2.0,
-          "sdlog": 0.5
+          "parameters": {
+            "meanlog": 2.0,
+            "sdlog": 0.5
+          }
         }
       }
     }
@@ -526,7 +548,7 @@ For independent and identically distributed (IID) samples from standard distribu
 "branchRates": {
   "distribution": {
     "type": "LogNormal",
-    "generates": "REAL_VECTOR",
+    "generates": "RealVector",
     "parameters": {
       "meanlog": -7.0,
       "sdlog": 1.0,

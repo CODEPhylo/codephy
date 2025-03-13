@@ -7,7 +7,7 @@
     "kappaParam": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
+        "generates": "Real",
         "parameters": {
           "meanlog": 1.0,
           "sdlog": 0.5
@@ -18,7 +18,7 @@
     "baseFreqParam": {
       "distribution": {
         "type": "Dirichlet",
-        "generates": "REAL_VECTOR",
+        "generates": "Simplex",
         "parameters": {
           "alpha": [5, 5, 5, 5]
         }
@@ -28,7 +28,7 @@
     "popSizeMean": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
+        "generates": "Real",
         "parameters": {
           "meanlog": 0.0,
           "sdlog": 1.0
@@ -39,7 +39,7 @@
     "popSizeCV": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
+        "generates": "Real",
         "parameters": {
           "meanlog": -1.0,
           "sdlog": 0.5
@@ -50,7 +50,7 @@
     "popSize": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
+        "generates": "Real",
         "parameters": {
           "meanlog": { "variable": "popSizeMean" },
           "sdlog": {
@@ -63,7 +63,7 @@
     "tree": {
       "distribution": {
         "type": "Coalescent",
-        "generates": "TREE",
+        "generates": "Tree",
         "parameters": {
           "populationSize": { "variable": "popSize" }
         }
@@ -73,7 +73,7 @@
     "alignment": {
       "distribution": {
         "type": "PhyloCTMC",
-        "generates": "ALIGNMENT",
+        "generates": "Alignment",
         "parameters": {
           "tree": { "variable": "tree" },
           "Q": { "variable": "substitutionModel" }
@@ -90,7 +90,7 @@
   
   "deterministicFunctions": {
     "substitutionModel": {
-      "function": "hky",
+      "function": "HKY",
       "arguments": {
         "kappa": { "variable": "kappaParam"},
         "baseFrequencies": { "variable": "baseFreqParam"}

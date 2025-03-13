@@ -33,23 +33,23 @@ public class FunctionMapper {
      */
     public void createFunction(String name, String functionType, JsonNode funcNode) throws Exception {
         switch (functionType) {
-            case "hky":
+            case CodephyConstants.FUNCTION_HKY:
                 createHKYModel(name, funcNode);
                 break;
                 
-            case "jc69":
+            case CodephyConstants.FUNCTION_JC69:
                 createJC69Model(name, funcNode);
                 break;
                 
-            case "gtr":
+            case CodephyConstants.FUNCTION_GTR:
                 createGTRModel(name, funcNode);
                 break;
                 
-            case "normalize":
+            case CodephyConstants.FUNCTION_NORMALIZE:
                 createNormalizeFunction(name, funcNode);
                 break;
                 
-            case "vectorElement":
+            case CodephyConstants.FUNCTION_VECTOR_ELEMENT:
                 createVectorElementFunction(name, funcNode);
                 break;
                 
@@ -63,23 +63,23 @@ public class FunctionMapper {
      */
     public void connectFunction(String name, String functionType, JsonNode funcNode) throws Exception {
         switch (functionType) {
-            case "hky":
+            case CodephyConstants.FUNCTION_HKY:
                 connectHKYModel(name, funcNode);
                 break;
                 
-            case "jc69":
+            case CodephyConstants.FUNCTION_JC69:
                 connectJC69Model(name, funcNode);
                 break;
                 
-            case "gtr":
+            case CodephyConstants.FUNCTION_GTR:
                 connectGTRModel(name, funcNode);
                 break;
                 
-            case "normalize":
+            case CodephyConstants.FUNCTION_NORMALIZE:
                 connectNormalizeFunction(name, funcNode);
                 break;
                 
-            case "vectorElement":
+            case CodephyConstants.FUNCTION_VECTOR_ELEMENT:
                 connectVectorElementFunction(name, funcNode);
                 break;
                 
@@ -101,23 +101,24 @@ public class FunctionMapper {
      * Connect the parameters of a HKY model.
      */
     private void connectHKYModel(String name, JsonNode funcNode) throws Exception {
-        JsonNode argsNode = funcNode.path("arguments");
+        JsonNode argsNode = funcNode.path(CodephyConstants.FIELD_ARGUMENTS);
         
-        // Get kappa parameter reference
-        String kappaRef = Utils.extractVariableReference(argsNode, "kappa");
+        // Get kappa parameter reference from Codephy JSON
+        String kappaRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_KAPPA);
         Parameter kappa = (Parameter) beastObjects.get(kappaRef);
         
-        // Get frequencies parameter reference
-        String freqRef = Utils.extractVariableReference(argsNode, "baseFrequencies");
+        // Get frequencies parameter reference from Codephy JSON
+        String freqRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_BASE_FREQUENCIES);
         Parameter freq = (Parameter) beastObjects.get(freqRef);
         
-        // Create Frequencies object
+        // Create Frequencies object using BEAST2 API
         Frequencies frequencies = new Frequencies();
-        frequencies.initByName("frequencies", freq);
+        frequencies.initByName(Beast2Constants.PARAM_FREQUENCIES, freq);
         
-        // Connect to HKY model
+        // Connect to HKY model using BEAST2 API
         HKY hky = (HKY) beastObjects.get(name);
-        hky.initByName("kappa", kappa, "frequencies", frequencies);
+        hky.initByName(Beast2Constants.PARAM_KAPPA, kappa, 
+                      Beast2Constants.PARAM_FREQUENCIES, frequencies);
     }
     
     /**
@@ -149,15 +150,15 @@ public class FunctionMapper {
      * Connect the parameters of a GTR model.
      */
     private void connectGTRModel(String name, JsonNode funcNode) throws Exception {
-        JsonNode argsNode = funcNode.path("arguments");
+        JsonNode argsNode = funcNode.path(CodephyConstants.FIELD_ARGUMENTS);
         
-        // Get rate parameters references
-        String rateACRef = Utils.extractVariableReference(argsNode, "rateAC");
-        String rateAGRef = Utils.extractVariableReference(argsNode, "rateAG");
-        String rateATRef = Utils.extractVariableReference(argsNode, "rateAT");
-        String rateCGRef = Utils.extractVariableReference(argsNode, "rateCG");
-        String rateCTRef = Utils.extractVariableReference(argsNode, "rateCT");
-        String rateGTRef = Utils.extractVariableReference(argsNode, "rateGT");
+        // Get rate parameters references from Codephy JSON
+        String rateACRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_RATE_AC);
+        String rateAGRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_RATE_AG);
+        String rateATRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_RATE_AT);
+        String rateCGRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_RATE_CG);
+        String rateCTRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_RATE_CT);
+        String rateGTRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_RATE_GT);
         
         Parameter rateAC = (Parameter) beastObjects.get(rateACRef);
         Parameter rateAG = (Parameter) beastObjects.get(rateAGRef);
@@ -166,24 +167,24 @@ public class FunctionMapper {
         Parameter rateCT = (Parameter) beastObjects.get(rateCTRef);
         Parameter rateGT = (Parameter) beastObjects.get(rateGTRef);
         
-        // Get frequencies parameter reference
-        String freqRef = Utils.extractVariableReference(argsNode, "baseFrequencies");
+        // Get frequencies parameter reference from Codephy JSON
+        String freqRef = Utils.extractVariableReference(argsNode, CodephyConstants.PARAM_BASE_FREQUENCIES);
         Parameter freq = (Parameter) beastObjects.get(freqRef);
         
-        // Create Frequencies object
+        // Create Frequencies object using BEAST2 API
         Frequencies frequencies = new Frequencies();
-        frequencies.initByName("frequencies", freq);
+        frequencies.initByName(Beast2Constants.PARAM_FREQUENCIES, freq);
         
-        // Connect to GTR model
+        // Connect to GTR model using BEAST2 API parameters
         GTR gtr = (GTR) beastObjects.get(name);
         gtr.initByName(
-            "rateAC", rateAC,
-            "rateAG", rateAG,
-            "rateAT", rateAT,
-            "rateCG", rateCG,
-            "rateCT", rateCT,
-            "rateGT", rateGT,
-            "frequencies", frequencies
+            Beast2Constants.PARAM_RATE_AC, rateAC,
+            Beast2Constants.PARAM_RATE_AG, rateAG,
+            Beast2Constants.PARAM_RATE_AT, rateAT,
+            Beast2Constants.PARAM_RATE_CG, rateCG,
+            Beast2Constants.PARAM_RATE_CT, rateCT,
+            Beast2Constants.PARAM_RATE_GT, rateGT,
+            Beast2Constants.PARAM_FREQUENCIES, frequencies
         );
     }
     
@@ -204,7 +205,7 @@ public class FunctionMapper {
      * Connect the parameters of a normalize function.
      */
     private void connectNormalizeFunction(String name, JsonNode funcNode) throws Exception {
-        JsonNode argsNode = funcNode.path("arguments");
+        JsonNode argsNode = funcNode.path(CodephyConstants.FIELD_ARGUMENTS);
         
         // Get the values to normalize
         JsonNode valuesNode = argsNode.path("values");
@@ -237,7 +238,7 @@ public class FunctionMapper {
      * Connect the parameters of a vectorElement function.
      */
     private void connectVectorElementFunction(String name, JsonNode funcNode) throws Exception {
-        JsonNode argsNode = funcNode.path("arguments");
+        JsonNode argsNode = funcNode.path(CodephyConstants.FIELD_ARGUMENTS);
         
         // Get vector reference
         String vectorRef = Utils.extractVariableReference(argsNode, "vector");
@@ -259,7 +260,7 @@ public class FunctionMapper {
             // Extract the value at the specified index
             double value = realVector.getValue(index);
             element.setID(name);
-            element.initByName("value", Double.toString(value));
+            element.initByName(Beast2Constants.INPUT_VALUE, Double.toString(value));
             
             beastObjects.put(name, element);
         }

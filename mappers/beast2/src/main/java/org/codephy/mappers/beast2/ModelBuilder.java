@@ -40,6 +40,7 @@ import java.util.Map;
 
 /**
  * Builds a full BEAST2 model from individual components.
+ * Updated to use separate Codephy and BEAST2 constants.
  */
 public class ModelBuilder {
 
@@ -101,36 +102,37 @@ public class ModelBuilder {
      */
     private boolean doesModelUseClock(JsonNode model) {
         // Check if any of the deterministicFunctions references a clock
-        if (model.has("deterministicFunctions")) {
-            JsonNode detFunctions = model.path("deterministicFunctions");
+        if (model.has(CodephyConstants.FIELD_DET_FUNCTIONS)) {
+            JsonNode detFunctions = model.path(CodephyConstants.FIELD_DET_FUNCTIONS);
             Iterator<Map.Entry<String, JsonNode>> fields = detFunctions.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 JsonNode funcNode = entry.getValue();
-                String functionType = funcNode.path("function").asText();
+                String functionType = funcNode.path(CodephyConstants.FIELD_FUNCTION).asText();
                 
-                if (functionType.equals("strictClock") || 
-                    functionType.equals("relaxedClock") || 
-                    functionType.equals("uncorrelatedClock")) {
+                if (functionType.equals(CodephyConstants.FUNCTION_STRICT_CLOCK) || 
+                    functionType.equals(CodephyConstants.FUNCTION_RELAXED_CLOCK) || 
+                    functionType.equals(CodephyConstants.FUNCTION_UNCORRELATED_CLOCK)) {
                     return true;
                 }
             }
         }
         
-        // Check if PhyloCTMC has a clockRate parameter
-        if (model.has("randomVariables")) {
-            JsonNode randomVars = model.path("randomVariables");
+        // Check if PhyloCTMC has a rate or branchRates parameter
+        if (model.has(CodephyConstants.FIELD_RANDOM_VARS)) {
+            JsonNode randomVars = model.path(CodephyConstants.FIELD_RANDOM_VARS);
             Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 JsonNode varNode = entry.getValue();
                 
-                JsonNode distNode = varNode.path("distribution");
-                String distType = distNode.path("type").asText();
+                JsonNode distNode = varNode.path(CodephyConstants.FIELD_DISTRIBUTION);
+                String distType = distNode.path(CodephyConstants.FIELD_TYPE).asText();
                 
-                if (distType.equals("PhyloCTMC")) {
-                    JsonNode paramsNode = distNode.path("parameters");
-                    if (paramsNode.has("clockRate")) {
+                if (distType.equals(CodephyConstants.DIST_PHYLOCTMC)) {
+                    JsonNode paramsNode = distNode.path(CodephyConstants.FIELD_PARAMETERS);
+                    if (paramsNode.has(CodephyConstants.PARAM_RATE) || 
+                        paramsNode.has(CodephyConstants.PARAM_BRANCH_RATES)) {
                         return true;
                     }
                 }
@@ -150,24 +152,24 @@ public class ModelBuilder {
         TreeInterface tree = null;
         
         // Find PhyloCTMC component (the alignment)
-        if (model.has("randomVariables")) {
-            JsonNode randomVars = model.path("randomVariables");
+        if (model.has(CodephyConstants.FIELD_RANDOM_VARS)) {
+            JsonNode randomVars = model.path(CodephyConstants.FIELD_RANDOM_VARS);
             Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 String name = entry.getKey();
                 JsonNode varNode = entry.getValue();
                 
-                JsonNode distNode = varNode.path("distribution");
-                String distType = distNode.path("type").asText();
+                JsonNode distNode = varNode.path(CodephyConstants.FIELD_DISTRIBUTION);
+                String distType = distNode.path(CodephyConstants.FIELD_TYPE).asText();
                 
-                if (distType.equals("PhyloCTMC")) {
+                if (distType.equals(CodephyConstants.DIST_PHYLOCTMC)) {
                     alignment = (Alignment) beastObjects.get(name);
                     
                     // Find the tree reference in the PhyloCTMC model
-                    JsonNode paramsNode = distNode.path("parameters");
-                    if (paramsNode.has("tree")) {
-                        String treeRef = Utils.extractVariableReference(paramsNode, "tree");
+                    JsonNode paramsNode = distNode.path(CodephyConstants.FIELD_PARAMETERS);
+                    if (paramsNode.has(CodephyConstants.PARAM_TREE)) {
+                        String treeRef = Utils.extractVariableReference(paramsNode, CodephyConstants.PARAM_TREE);
                         tree = (TreeInterface) beastObjects.get(treeRef);
                     }
                     
@@ -186,25 +188,26 @@ public class ModelBuilder {
         
         // Create taxon set for the tree if not already set
         TaxonSet taxonSet = new TaxonSet();
-        taxonSet.initByName("alignment", alignment);
+        taxonSet.initByName(Beast2Constants.INPUT_ALIGNMENT, alignment);
         if (tree instanceof Tree) {
-            // Set taxon set for the tree using reflection or other method
-            // In BEAST 2.7.5, we need to use proper setters instead of direct input access
+            // Set taxon set for the tree using BEAST2 API
             ((Tree) tree).setInputValue("taxonset", taxonSet);
         }
         
         // Find substitution model
         SubstitutionModel substModel = null;
-        if (model.has("deterministicFunctions")) {
-            JsonNode detFunctions = model.path("deterministicFunctions");
+        if (model.has(CodephyConstants.FIELD_DET_FUNCTIONS)) {
+            JsonNode detFunctions = model.path(CodephyConstants.FIELD_DET_FUNCTIONS);
             Iterator<Map.Entry<String, JsonNode>> fields = detFunctions.fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
                 String name = entry.getKey();
                 JsonNode funcNode = entry.getValue();
                 
-                String functionType = funcNode.path("function").asText();
-                if (functionType.equals("hky") || functionType.equals("jc69") || functionType.equals("gtr")) {
+                String functionType = funcNode.path(CodephyConstants.FIELD_FUNCTION).asText();
+                if (functionType.equals(CodephyConstants.FUNCTION_HKY) || 
+                    functionType.equals(CodephyConstants.FUNCTION_JC69) || 
+                    functionType.equals(CodephyConstants.FUNCTION_GTR)) {
                     substModel = (SubstitutionModel) beastObjects.get(name);
                     break;
                 }
@@ -218,129 +221,138 @@ public class ModelBuilder {
         // Create site model
         SiteModel siteModel = setupSiteModel(model);
         
-        // Create tree likelihood
+        // Create tree likelihood using BEAST2 API
         TreeLikelihood treeLikelihood = new TreeLikelihood();
-        treeLikelihood.setID("treeLikelihood");
+        treeLikelihood.setID(Beast2Constants.ID_TREE_LIKELIHOOD);
         treeLikelihood.initByName(
-            "data", alignment,
-            "tree", tree,
-            "siteModel", siteModel
+            Beast2Constants.INPUT_DATA, alignment,
+            Beast2Constants.INPUT_TREE, tree,
+            Beast2Constants.INPUT_SITE_MODEL, siteModel
         );
         
-        beastObjects.put("treeLikelihood", treeLikelihood);
+        beastObjects.put(Beast2Constants.ID_TREE_LIKELIHOOD, treeLikelihood);
         return treeLikelihood;
     }
     
-/**
- * Set up a site model for the likelihood calculation.
- */
-private SiteModel setupSiteModel(JsonNode model) throws Exception {
-    // Check if we already created a site model
-    if (beastObjects.containsKey("siteModel")) {
-        return (SiteModel) beastObjects.get("siteModel");
-    }
-    
-    // Find substitution model
-    SubstitutionModel substModel = null;
-    if (model.has("deterministicFunctions")) {
-        JsonNode detFunctions = model.path("deterministicFunctions");
-        Iterator<Map.Entry<String, JsonNode>> fields = detFunctions.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
-            String name = entry.getKey();
-            JsonNode funcNode = entry.getValue();
-            
-            String functionType = funcNode.path("function").asText();
-            if (functionType.equals("hky") || functionType.equals("jc69") || functionType.equals("gtr")) {
-                substModel = (SubstitutionModel) beastObjects.get(name);
-                break;
-            }
+    /**
+     * Set up a site model for the likelihood calculation.
+     */
+    private SiteModel setupSiteModel(JsonNode model) throws Exception {
+        // Check if we already created a site model
+        if (beastObjects.containsKey(Beast2Constants.ID_SITE_MODEL)) {
+            return (SiteModel) beastObjects.get(Beast2Constants.ID_SITE_MODEL);
         }
-    }
-    
-    if (substModel == null) {
-        throw new IllegalArgumentException("No substitution model found in model");
-    }
-    
-    // Check if model explicitly specifies gamma rate heterogeneity
-    boolean useGamma = false;
-    
-    // Look for siteRates or similar parameters in PhyloCTMC models
-    if (model.has("randomVariables")) {
-        JsonNode randomVars = model.path("randomVariables");
-        Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
         
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
-            JsonNode varNode = entry.getValue();
-            JsonNode distNode = varNode.path("distribution");
-            String distType = distNode.path("type").asText();
-            
-            if (distType.equals("PhyloCTMC")) {
-                // Check if PhyloCTMC specifies siteRates parameter
-                JsonNode paramsNode = distNode.path("parameters");
-                if (paramsNode.has("siteRates")) {
-                    useGamma = true;
+        // Find substitution model
+        SubstitutionModel substModel = null;
+        if (model.has(CodephyConstants.FIELD_DET_FUNCTIONS)) {
+            JsonNode detFunctions = model.path(CodephyConstants.FIELD_DET_FUNCTIONS);
+            Iterator<Map.Entry<String, JsonNode>> fields = detFunctions.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                String name = entry.getKey();
+                JsonNode funcNode = entry.getValue();
+                
+                String functionType = funcNode.path(CodephyConstants.FIELD_FUNCTION).asText();
+                if (functionType.equals(CodephyConstants.FUNCTION_HKY) || 
+                    functionType.equals(CodephyConstants.FUNCTION_JC69) || 
+                    functionType.equals(CodephyConstants.FUNCTION_GTR)) {
+                    substModel = (SubstitutionModel) beastObjects.get(name);
                     break;
                 }
             }
         }
-    }
-    
-    // Create site model
-    SiteModel siteModel = new SiteModel();
-    siteModel.setID("siteModel");
-    
-    if (useGamma) {
-        // Create gamma shape parameter for rate heterogeneity
-        RealParameter shapeParameter = new RealParameter();
-        shapeParameter.setID("gammaShape");
-        shapeParameter.initByName("value", "0.5", "lower", "0.0", "upper", "1000.0");
         
-        // Set up site model with gamma rate heterogeneity
-        siteModel.initByName(
-            "substModel", substModel,
-            "gammaCategoryCount", 4,
-            "shape", shapeParameter,
-            "proportionInvariant", "0.0"
-        );
+        if (substModel == null) {
+            throw new IllegalArgumentException("No substitution model found in model");
+        }
         
-        // Store the shape parameter
-        beastObjects.put("gammaShape", shapeParameter);
-    } else {
-        // Set up site model without gamma rate heterogeneity
-        siteModel.initByName(
-            "substModel", substModel,
-            "gammaCategoryCount", 1,  // No rate heterogeneity
-            "proportionInvariant", "0.0"
-        );
+        // Check if model explicitly specifies gamma rate heterogeneity
+        boolean useGamma = false;
+        
+        // Look for siteRates parameter in PhyloCTMC models
+        if (model.has(CodephyConstants.FIELD_RANDOM_VARS)) {
+            JsonNode randomVars = model.path(CodephyConstants.FIELD_RANDOM_VARS);
+            Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
+            
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                JsonNode varNode = entry.getValue();
+                JsonNode distNode = varNode.path(CodephyConstants.FIELD_DISTRIBUTION);
+                String distType = distNode.path(CodephyConstants.FIELD_TYPE).asText();
+                
+                if (distType.equals(CodephyConstants.DIST_PHYLOCTMC)) {
+                    // Check if PhyloCTMC specifies siteRates parameter
+                    JsonNode paramsNode = distNode.path(CodephyConstants.FIELD_PARAMETERS);
+                    if (paramsNode.has(CodephyConstants.PARAM_SITE_RATES)) {
+                        useGamma = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Create site model using BEAST2 API
+        SiteModel siteModel = new SiteModel();
+        siteModel.setID(Beast2Constants.ID_SITE_MODEL);
+        
+        if (useGamma) {
+            // Create gamma shape parameter for rate heterogeneity
+            RealParameter shapeParameter = new RealParameter();
+            shapeParameter.setID(Beast2Constants.ID_GAMMA_SHAPE);
+            shapeParameter.initByName(
+                Beast2Constants.INPUT_VALUE, "0.5", 
+                Beast2Constants.INPUT_LOWER, "0.0", 
+                Beast2Constants.INPUT_UPPER, "1000.0"
+            );
+            
+            // Set up site model with gamma rate heterogeneity
+            siteModel.initByName(
+                Beast2Constants.INPUT_SUBST_MODEL, substModel,
+                Beast2Constants.INPUT_GAMMA_CATEGORY_COUNT, 4,
+                Beast2Constants.PARAM_SHAPE, shapeParameter,
+                Beast2Constants.INPUT_PROPORTION_INVARIANT, "0.0"
+            );
+            
+            // Store the shape parameter
+            beastObjects.put(Beast2Constants.ID_GAMMA_SHAPE, shapeParameter);
+        } else {
+            // Set up site model without gamma rate heterogeneity
+            siteModel.initByName(
+                Beast2Constants.INPUT_SUBST_MODEL, substModel,
+                Beast2Constants.INPUT_GAMMA_CATEGORY_COUNT, 1,  // No rate heterogeneity
+                Beast2Constants.INPUT_PROPORTION_INVARIANT, "0.0"
+            );
+        }
+        
+        beastObjects.put(Beast2Constants.ID_SITE_MODEL, siteModel);
+        return siteModel;
     }
-    
-    beastObjects.put("siteModel", siteModel);
-    return siteModel;
-}
     
     /**
      * Set up a clock model only if explicitly needed.
      */
     private StrictClockModel setupClockModel(JsonNode model) throws Exception {
         // Check if we already created a clock model
-        if (beastObjects.containsKey("clockModel")) {
-            return (StrictClockModel) beastObjects.get("clockModel");
+        if (beastObjects.containsKey(Beast2Constants.ID_CLOCK_MODEL)) {
+            return (StrictClockModel) beastObjects.get(Beast2Constants.ID_CLOCK_MODEL);
         }
         
-        // Create clock rate parameter
+        // Create clock rate parameter using BEAST2 API
         RealParameter clockRate = new RealParameter();
         clockRate.setID("clockRate");
-        clockRate.initByName("value", "1.0", "lower", "0.0");
+        clockRate.initByName(
+            Beast2Constants.INPUT_VALUE, "1.0", 
+            Beast2Constants.INPUT_LOWER, "0.0"
+        );
         
-        // Create strict clock model
+        // Create strict clock model using BEAST2 API
         StrictClockModel clockModel = new StrictClockModel();
-        clockModel.setID("clockModel");
-        clockModel.initByName("clock.rate", clockRate);
+        clockModel.setID(Beast2Constants.ID_CLOCK_MODEL);
+        clockModel.initByName(Beast2Constants.PARAM_CLOCK_RATE, clockRate);
         
         beastObjects.put("clockRate", clockRate);
-        beastObjects.put("clockModel", clockModel);
+        beastObjects.put(Beast2Constants.ID_CLOCK_MODEL, clockModel);
         
         return clockModel;
     }
@@ -349,9 +361,9 @@ private SiteModel setupSiteModel(JsonNode model) throws Exception {
  * Set up the prior distribution.
  */
 private CompoundDistribution setupPrior(JsonNode model, TreeLikelihood treeLikelihood) throws Exception {
-    // Create a compound distribution for the prior
+    // Create a compound distribution for the prior using BEAST2 API
     CompoundDistribution prior = new CompoundDistribution();
-    prior.setID("prior");
+    prior.setID(Beast2Constants.ID_PRIOR);
     
     // Collect all prior distributions
     List<Distribution> priors = new ArrayList<>();
@@ -374,8 +386,8 @@ private CompoundDistribution setupPrior(JsonNode model, TreeLikelihood treeLikel
             
             // Skip if already added, or if it's likelihood/posterior
             if (priors.contains(dist) || 
-                id.equals("likelihood") || 
-                id.equals("posterior")) {
+                id.equals(Beast2Constants.ID_LIKELIHOOD) || 
+                id.equals(Beast2Constants.ID_POSTERIOR)) {
                 continue;
             }
             
@@ -394,8 +406,8 @@ private CompoundDistribution setupPrior(JsonNode model, TreeLikelihood treeLikel
         }
     }
     
-    prior.initByName("distribution", priors);
-    beastObjects.put("prior", prior);
+    prior.initByName(Beast2Constants.INPUT_DISTRIBUTION, priors);
+    beastObjects.put(Beast2Constants.ID_PRIOR, prior);
     
     return prior;
 }
@@ -406,8 +418,8 @@ private CompoundDistribution setupPrior(JsonNode model, TreeLikelihood treeLikel
 private Map<String, Boolean> buildObservationMap(JsonNode model) {
     Map<String, Boolean> observationMap = new HashMap<>();
     
-    if (model.has("randomVariables")) {
-        JsonNode randomVars = model.path("randomVariables");
+    if (model.has(CodephyConstants.FIELD_RANDOM_VARS)) {
+        JsonNode randomVars = model.path(CodephyConstants.FIELD_RANDOM_VARS);
         Iterator<Map.Entry<String, JsonNode>> fields = randomVars.fields();
         
         while (fields.hasNext()) {
@@ -416,7 +428,7 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
             JsonNode varNode = entry.getValue();
             
             // Check if this random variable has an observedValue
-            boolean hasObservation = varNode.has("observedValue");
+            boolean hasObservation = varNode.has(CodephyConstants.FIELD_OBSERVED);
             observationMap.put(varName, hasObservation);
         }
     }
@@ -427,16 +439,16 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
      * Set up the likelihood distribution.
      */
     private CompoundDistribution setupLikelihood(JsonNode model, TreeLikelihood treeLikelihood) throws Exception {
-        // Create a compound distribution for the likelihood
+        // Create a compound distribution for the likelihood using BEAST2 API
         CompoundDistribution likelihood = new CompoundDistribution();
-        likelihood.setID("likelihood");
+        likelihood.setID(Beast2Constants.ID_LIKELIHOOD);
         
         // Add tree likelihood
         List<Distribution> likelihoods = new ArrayList<>();
         likelihoods.add(treeLikelihood);
         
-        likelihood.initByName("distribution", likelihoods);
-        beastObjects.put("likelihood", likelihood);
+        likelihood.initByName(Beast2Constants.INPUT_DISTRIBUTION, likelihoods);
+        beastObjects.put(Beast2Constants.ID_LIKELIHOOD, likelihood);
         
         return likelihood;
     }
@@ -446,17 +458,17 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
      */
     private CompoundDistribution setupPosterior(JsonNode model, CompoundDistribution prior, 
                                               CompoundDistribution likelihood) throws Exception {
-        // Create a compound distribution for the posterior
+        // Create a compound distribution for the posterior using BEAST2 API
         CompoundDistribution posterior = new CompoundDistribution();
-        posterior.setID("posterior");
+        posterior.setID(Beast2Constants.ID_POSTERIOR);
         
         // Add prior and likelihood
         List<Distribution> distributions = new ArrayList<>();
         distributions.add(prior);
         distributions.add(likelihood);
         
-        posterior.initByName("distribution", distributions);
-        beastObjects.put("posterior", posterior);
+        posterior.initByName(Beast2Constants.INPUT_DISTRIBUTION, distributions);
+        beastObjects.put(Beast2Constants.ID_POSTERIOR, posterior);
         
         return posterior;
     }
@@ -465,23 +477,25 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
      * Set up the state object to be sampled.
      */
     private State setupState(JsonNode model) throws Exception {
-        // Create a state object
+        // Create a state object using BEAST2 API
         State state = new State();
-        state.setID("state");
+        state.setID(Beast2Constants.ID_STATE);
         
         // Add all state nodes (parameters and trees)
         List<StateNode> stateNodes = new ArrayList<>();
         
         for (BEASTInterface obj : beastObjects.values()) {
             // Skip clock rate if we're not using a clock
+            // Also skip alignment objects - they should not be state nodes
             if (obj instanceof StateNode && 
+                !(obj instanceof Alignment) &&   // Add this check
                 (!obj.getID().equals("clockRate") || useStrictClock)) {
                 stateNodes.add((StateNode) obj);
             }
         }
         
-        state.initByName("stateNode", stateNodes);
-        beastObjects.put("state", state);
+        state.initByName(Beast2Constants.INPUT_STATE_NODE, stateNodes);
+        beastObjects.put(Beast2Constants.ID_STATE, state);
         
         return state;
     }
@@ -495,7 +509,7 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
         // Make a defensive copy of the values to avoid ConcurrentModificationException
         List<BEASTInterface> objectsCopy = new ArrayList<>(beastObjects.values());
         
-        // Set up operators for parameters
+        // Set up operators for parameters using BEAST2 API
         for (BEASTInterface obj : objectsCopy) {
             if (obj instanceof Parameter) {
                 Parameter param = (Parameter) obj;
@@ -510,21 +524,27 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
                     // Use Delta Exchange operator for multidimensional parameters
                     DeltaExchangeOperator deltaOperator = new DeltaExchangeOperator();
                     deltaOperator.setID(paramID + "Operator");
-                    deltaOperator.initByName("parameter", param, "weight", 1.0);
+                    deltaOperator.initByName(
+                        Beast2Constants.INPUT_PARAMETER, param, 
+                        Beast2Constants.INPUT_WEIGHT, 1.0
+                    );
                     operators.add(deltaOperator);
                     beastObjects.put(paramID + "Operator", deltaOperator);
                 } else {
                     // Use Scale operator for scalar parameters
                     ScaleOperator operator = new ScaleOperator();
                     operator.setID(paramID + "Operator");
-                    operator.initByName("parameter", param, "weight", 1.0);
+                    operator.initByName(
+                        Beast2Constants.INPUT_PARAMETER, param, 
+                        Beast2Constants.INPUT_WEIGHT, 1.0
+                    );
                     operators.add(operator);
                     beastObjects.put(paramID + "Operator", operator);
                 }
             }
         }
         
-        // Set up operators for trees
+        // Set up operators for trees using BEAST2 API
         for (BEASTInterface obj : objectsCopy) {
             if (obj instanceof Tree) {
                 Tree tree = (Tree) obj;
@@ -533,49 +553,49 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
                 // SubtreeSlide operator
                 SubtreeSlide subtreeSlide = new SubtreeSlide();
                 subtreeSlide.setID(treeID + "SubtreeSlide");
-                subtreeSlide.initByName("tree", tree, "weight", 5.0);
+                subtreeSlide.initByName(Beast2Constants.INPUT_TREE, tree, Beast2Constants.INPUT_WEIGHT, 5.0);
                 operators.add(subtreeSlide);
                 beastObjects.put(treeID + "SubtreeSlide", subtreeSlide);
                 
                 // Narrow Exchange operator
                 Exchange narrowExchange = new Exchange();
                 narrowExchange.setID(treeID + "NarrowExchange");
-                narrowExchange.initByName("tree", tree, "weight", 5.0, "isNarrow", true);
+                narrowExchange.initByName(Beast2Constants.INPUT_TREE, tree, Beast2Constants.INPUT_WEIGHT, 5.0, "isNarrow", true);
                 operators.add(narrowExchange);
                 beastObjects.put(treeID + "NarrowExchange", narrowExchange);
                 
                 // Wide Exchange operator
                 Exchange wideExchange = new Exchange();
                 wideExchange.setID(treeID + "WideExchange");
-                wideExchange.initByName("tree", tree, "weight", 3.0, "isNarrow", false);
+                wideExchange.initByName(Beast2Constants.INPUT_TREE, tree, Beast2Constants.INPUT_WEIGHT, 3.0, "isNarrow", false);
                 operators.add(wideExchange);
                 beastObjects.put(treeID + "WideExchange", wideExchange);
                 
                 // Wilson-Balding operator
                 WilsonBalding wilsonBalding = new WilsonBalding();
                 wilsonBalding.setID(treeID + "WilsonBalding");
-                wilsonBalding.initByName("tree", tree, "weight", 3.0);
+                wilsonBalding.initByName(Beast2Constants.INPUT_TREE, tree, Beast2Constants.INPUT_WEIGHT, 3.0);
                 operators.add(wilsonBalding);
                 beastObjects.put(treeID + "WilsonBalding", wilsonBalding);
                 
                 // Tree Scaler operator
                 ScaleOperator treeScaler = new ScaleOperator();
                 treeScaler.setID(treeID + "TreeScaler");
-                treeScaler.initByName("tree", tree, "weight", 3.0, "scaleFactor", 0.95);
+                treeScaler.initByName(Beast2Constants.INPUT_TREE, tree, Beast2Constants.INPUT_WEIGHT, 3.0, "scaleFactor", 0.95);
                 operators.add(treeScaler);
                 beastObjects.put(treeID + "TreeScaler", treeScaler);
                 
                 // Root Height Scaler operator
                 ScaleOperator rootHeightScaler = new ScaleOperator();
                 rootHeightScaler.setID(treeID + "RootHeightScaler");
-                rootHeightScaler.initByName("tree", tree, "weight", 3.0, "scaleFactor", 0.95, "rootOnly", true);
+                rootHeightScaler.initByName(Beast2Constants.INPUT_TREE, tree, Beast2Constants.INPUT_WEIGHT, 3.0, "scaleFactor", 0.95, "rootOnly", true);
                 operators.add(rootHeightScaler);
                 beastObjects.put(treeID + "RootHeightScaler", rootHeightScaler);
                 
                 // Uniform operator (for internal node heights)
                 Uniform uniform = new Uniform();
                 uniform.setID(treeID + "Uniform");
-                uniform.initByName("tree", tree, "weight", 30.0);
+                uniform.initByName(Beast2Constants.INPUT_TREE, tree, Beast2Constants.INPUT_WEIGHT, 30.0);
                 operators.add(uniform);
                 beastObjects.put(treeID + "Uniform", uniform);
             }
@@ -589,28 +609,28 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
      */
     private MCMC setupMCMC(JsonNode model, CompoundDistribution posterior, 
                          State state, List<Operator> operators) throws Exception {
-        // Create MCMC object
+        // Create MCMC object using BEAST2 API
         MCMC mcmc = new MCMC();
-        mcmc.setID("mcmc");
+        mcmc.setID(Beast2Constants.ID_MCMC);
         
         // Create loggers
         loggers = new ArrayList<>();
         
         // 1. Console logger
         Logger consoleLogger = new Logger();
-        consoleLogger.setID("consoleLogger");
+        consoleLogger.setID(Beast2Constants.ID_CONSOLE_LOGGER);
         // Add items to log for console
         List<BEASTInterface> consoleLogItems = new ArrayList<>();
         consoleLogItems.add(posterior); // Always log the posterior
         consoleLogger.initByName(
-            "logEvery", 1000,
-            "log", consoleLogItems
+            Beast2Constants.INPUT_LOG_EVERY, 1000,
+            Beast2Constants.INPUT_LOG, consoleLogItems
         );
         loggers.add(consoleLogger);
         
         // 2. File logger for parameters
         Logger fileLogger = new Logger();
-        fileLogger.setID("fileLogger");
+        fileLogger.setID(Beast2Constants.ID_FILE_LOGGER);
         // Add items to log for file
         List<BEASTInterface> fileLogItems = new ArrayList<>();
         fileLogItems.add(posterior); // Always log the posterior
@@ -623,15 +643,15 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
             }
         }
         fileLogger.initByName(
-            "fileName", "model.log",  // Default name, will be updated by app
-            "logEvery", 1000,
-            "log", fileLogItems
+            Beast2Constants.INPUT_FILE_NAME, "model.log",  // Default name, will be updated by app
+            Beast2Constants.INPUT_LOG_EVERY, 1000,
+            Beast2Constants.INPUT_LOG, fileLogItems
         );
         loggers.add(fileLogger);
         
         // 3. Tree logger
         Logger treeLogger = new Logger();
-        treeLogger.setID("treeLogger");
+        treeLogger.setID(Beast2Constants.ID_TREE_LOGGER);
         // Add trees to log
         List<BEASTInterface> treeLogItems = new ArrayList<>();
         // Find trees to log
@@ -641,23 +661,23 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
             }
         }
         treeLogger.initByName(
-            "fileName", "model.trees",  // Default name, will be updated by app
-            "logEvery", 1000,
-            "mode", "tree",
-            "log", treeLogItems
+            Beast2Constants.INPUT_FILE_NAME, "model.trees",  // Default name, will be updated by app
+            Beast2Constants.INPUT_LOG_EVERY, 1000,
+            Beast2Constants.INPUT_MODE, "tree",
+            Beast2Constants.INPUT_LOG, treeLogItems
         );
         loggers.add(treeLogger);
         
-        // Set up chainLength, state, operators, and posterior
+        // Set up chainLength, state, operators, and posterior using BEAST2 API
         mcmc.initByName(
-            "chainLength", Long.valueOf(10000000),
-            "state", state,
-            "distribution", posterior,
-            "operator", operators,
-            "logger", loggers
+            Beast2Constants.INPUT_CHAIN_LENGTH, Long.valueOf(10000000),
+            Beast2Constants.INPUT_STATE, state,
+            Beast2Constants.INPUT_DISTRIBUTION, posterior,
+            Beast2Constants.INPUT_OPERATOR, operators,
+            Beast2Constants.INPUT_LOGGER, loggers
         );
         
-        beastObjects.put("mcmc", mcmc);
+        beastObjects.put(Beast2Constants.ID_MCMC, mcmc);
         
         return mcmc;
     }
@@ -669,12 +689,12 @@ private Map<String, Boolean> buildObservationMap(JsonNode model) {
         for (Logger logger : loggers) {
             String loggerId = logger.getID();
             
-            if (loggerId.equals("fileLogger")) {
+            if (loggerId.equals(Beast2Constants.ID_FILE_LOGGER)) {
                 String newPath = Paths.get(outputDir, baseName + ".log").toString();
-                logger.setInputValue("fileName", newPath);
-            } else if (loggerId.equals("treeLogger")) {
+                logger.setInputValue(Beast2Constants.INPUT_FILE_NAME, newPath);
+            } else if (loggerId.equals(Beast2Constants.ID_TREE_LOGGER)) {
                 String newPath = Paths.get(outputDir, baseName + ".trees").toString();
-                logger.setInputValue("fileName", newPath);
+                logger.setInputValue(Beast2Constants.INPUT_FILE_NAME, newPath);
             }
         }
     }

@@ -221,7 +221,7 @@
         "oneOf": [
           {
             "properties": {
-              "type": { "const": "lessThan" },
+              "type": { "const": "LessThan" },
               "left": {
                 "type": "string",
                 "description": "Reference to a variable that should be less than the right."
@@ -236,7 +236,7 @@
           },
           {
             "properties": {
-              "type": { "const": "greaterThan" },
+              "type": { "const": "GreaterThan" },
               "left": {
                 "type": "string",
                 "description": "Reference to a variable that should be greater than the right."
@@ -251,7 +251,7 @@
           },
           {
             "properties": {
-              "type": { "const": "equals" },
+              "type": { "const": "Equals" },
               "left": {
                 "type": "string",
                 "description": "Reference to a variable that should equal the right."
@@ -269,7 +269,7 @@
           },
           {
             "properties": {
-              "type": { "const": "bounded" },
+              "type": { "const": "Bounded" },
               "variable": {
                 "type": "string",
                 "description": "Reference to a variable that should be within bounds."
@@ -288,7 +288,7 @@
           },
           {
             "properties": {
-              "type": { "const": "sumTo" },
+              "type": { "const": "SumTo" },
               "variables": {
                 "type": "array",
                 "items": { "type": "string" },
@@ -384,7 +384,7 @@
       "properties": {
         "function": {
           "type": "string",
-          "description": "The name of the function (e.g., 'hky')."
+          "description": "The name of the function (e.g., 'HKY')."
         },
         "arguments": {
           "type": "object",
@@ -435,7 +435,7 @@
             "type": { "const": "LogNormal" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "This distribution yields a real-valued random variable or vector of real values."
             },
             "parameters": {
@@ -445,7 +445,7 @@
                 "sdlog": { "$ref": "#/$defs/parameterValue" },
                 "dimension": { 
                   "$ref": "#/$defs/parameterValue",
-                  "description": "When generates is REAL_VECTOR, specifies the number of IID samples" 
+                  "description": "When generates is RealVector, specifies the number of IID samples" 
                 }
               },
               "required": ["meanlog", "sdlog"],
@@ -461,7 +461,7 @@
             "type": { "const": "Normal" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "Normal distribution yields a real-valued random variable or vector of real values."
             },
             "parameters": {
@@ -471,7 +471,7 @@
                 "sd": { "$ref": "#/$defs/parameterValue" },
                 "dimension": { 
                   "$ref": "#/$defs/parameterValue",
-                  "description": "When generates is REAL_VECTOR, specifies the number of IID samples" 
+                  "description": "When generates is RealVector, specifies the number of IID samples" 
                 }
               },
               "required": ["mean", "sd"],
@@ -487,7 +487,7 @@
             "type": { "const": "Gamma" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "Gamma distribution yields a real-valued (> 0) random variable or vector of real values."
             },
             "parameters": {
@@ -497,7 +497,7 @@
                 "rate": { "$ref": "#/$defs/parameterValue" },
                 "dimension": { 
                   "$ref": "#/$defs/parameterValue",
-                  "description": "When generates is REAL_VECTOR, specifies the number of IID samples" 
+                  "description": "When generates is RealVector, specifies the number of IID samples" 
                 }
               },
               "required": ["shape", "rate"],
@@ -513,7 +513,7 @@
             "type": { "const": "Beta" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "Beta distribution yields a real-valued parameter in (0,1) or vector of such values."
             },
             "parameters": {
@@ -523,7 +523,7 @@
                 "beta": { "$ref": "#/$defs/parameterValue" },
                 "dimension": { 
                   "$ref": "#/$defs/parameterValue",
-                  "description": "When generates is REAL_VECTOR, specifies the number of IID samples" 
+                  "description": "When generates is RealVector, specifies the number of IID samples" 
                 }
               },
               "required": ["alpha", "beta"],
@@ -539,7 +539,7 @@
             "type": { "const": "Exponential" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "Exponential distribution yields a real-valued (> 0) random variable or vector of real values."
             },
             "parameters": {
@@ -548,7 +548,7 @@
                 "rate": { "$ref": "#/$defs/parameterValue" },
                 "dimension": { 
                   "$ref": "#/$defs/parameterValue",
-                  "description": "When generates is REAL_VECTOR, specifies the number of IID samples" 
+                  "description": "When generates is RealVector, specifies the number of IID samples" 
                 }
               },
               "required": ["rate"],
@@ -564,7 +564,7 @@
             "type": { "const": "Uniform" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "Uniform distribution yields a real-valued random variable within bounds or vector of such values."
             },
             "parameters": {
@@ -574,7 +574,7 @@
                 "upper": { "$ref": "#/$defs/parameterValue" },
                 "dimension": { 
                   "$ref": "#/$defs/parameterValue",
-                  "description": "When generates is REAL_VECTOR, specifies the number of IID samples" 
+                  "description": "When generates is RealVector, specifies the number of IID samples" 
                 }
               },
               "required": ["lower", "upper"],
@@ -591,7 +591,7 @@
             "type": { "const": "Dirichlet" },
             "generates": {
               "type": "string",
-              "enum": ["REAL_VECTOR"],
+              "enum": ["Simplex"],
               "description": "Dirichlet yields a vector (of dimension = alpha.length) with values in [0,1]."
             },
             "parameters": {
@@ -616,7 +616,7 @@
             "type": { "const": "MultivariateNormal" },
             "generates": {
               "type": "string",
-              "enum": ["REAL_VECTOR"],
+              "enum": ["RealVector"],
               "description": "MVN yields a vector of real-valued variables."
             },
             "parameters": {
@@ -649,7 +649,7 @@
             "type": { "const": "Mixture" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "The type of random variable produced by the mixture."
             },
             "parameters": {
@@ -711,7 +711,7 @@
             "type": { "const": "PosteriorApproximation" },
             "generates": {
               "type": "string",
-              "enum": ["REAL", "REAL_VECTOR"],
+              "enum": ["Real", "RealVector"],
               "description": "The type of random variable produced by the approximation."
             },
             "parameters": {
@@ -750,7 +750,7 @@
             "type": { "const": "Yule" },
             "generates": {
               "type": "string",
-              "enum": ["TREE"],
+              "enum": ["Tree"],
               "description": "The Yule process generates a tree."
             },
             "parameters": {
@@ -774,7 +774,7 @@
             "type": { "const": "BirthDeath" },
             "generates": {
               "type": "string",
-              "enum": ["TREE"],
+              "enum": ["Tree"],
               "description": "The Birth-Death process generates a tree."
             },
             "parameters": {
@@ -806,7 +806,7 @@
             "type": { "const": "Coalescent" },
             "generates": {
               "type": "string",
-              "enum": ["TREE"],
+              "enum": ["Tree"],
               "description": "The Coalescent process generates a tree."
             },
             "parameters": {
@@ -830,7 +830,7 @@
             "type": { "const": "ConstrainedYule" },
             "generates": {
               "type": "string",
-              "enum": ["TREE"],
+              "enum": ["Tree"],
               "description": "The constrained Yule process generates a tree."
             },
             "parameters": {
@@ -903,78 +903,39 @@
           "additionalProperties": false
         },
         {
-    "description": "PhyloCTMC distribution for an alignment, referencing a tree and Q (substitution model).",
-    "properties": {
-      "type": { "const": "PhyloCTMC" },
-      "generates": {
-        "type": "string",
-        "enum": ["ALIGNMENT"],
-        "description": "A PhyloCTMC distribution yields an alignment (sequence data)."
-      },
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "tree": {
-            "$ref": "#/$defs/parameterValue",
-            "description": "Name of the random variable representing the tree."
-          },
-          "Q": {
-            "$ref": "#/$defs/parameterValue",
-            "description": "Name of the deterministic function or variable representing the rate matrix."
-          },
-          "siteRates": {
-            "$ref": "#/$defs/parameterValue",
-            "description": "Optional reference to rate heterogeneity across sites."
-          },
-          "branchRates": {
-            "$ref": "#/$defs/parameterValue",
-            "description": "Optional reference to rate heterogeneity across branches."
-          },
+          "description": "PhyloCTMC distribution for an alignment, referencing a tree and Q (substitution model).",
+          "properties": {
+            "type": { "const": "PhyloCTMC" },
+            "generates": {
+              "type": "string",
+              "enum": ["Alignment"],
+              "description": "A PhyloCTMC distribution yields an alignment (sequence data)."
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "tree": {
+                  "$ref": "#/$defs/parameterValue",
+                  "description": "Name of the random variable representing the tree."
+                },
+                "Q": {
+                  "$ref": "#/$defs/parameterValue",
+                  "description": "Name of the deterministic function or variable representing the rate matrix."
+                },
+                "siteRates": {
+                  "$ref": "#/$defs/parameterValue",
+                  "description": "Optional reference to rate heterogeneity across sites."
+                },
+                "branchRates": {
+                  "$ref": "#/$defs/parameterValue",
+                  "description": "Optional reference to rate heterogeneity across branches."
+                },
           "rate": {
             "$ref": "#/$defs/parameterValue",
             "description": "Overall rate multiplier."
           }
         },
         "required": ["tree", "Q"],
-        "additionalProperties": false
-      }
-    },
-    "required": ["type", "generates", "parameters"],
-    "additionalProperties": false
-  },
-        {
-    "description": "Posterior Approximation, for using results from previous studies as priors.",
-    "properties": {
-      "type": { "const": "PosteriorApproximation" },
-      "generates": {
-        "type": "string",
-        "enum": ["REAL", "REAL_VECTOR"],
-        "description": "The type of random variable produced by the approximation."
-      },
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "source": {
-            "type": "object",
-            "properties": {
-              "doi": { 
-                "type": "string",
-                "description": "DOI of the study providing the posterior." 
-              },
-              "parameter": { 
-                "type": "string",
-                "description": "Name of the parameter in the original study." 
-              }
-            },
-            "required": ["doi", "parameter"],
-            "additionalProperties": false
-          },
-          "approximation": {
-            "type": "object",
-            "description": "Distribution used to approximate the posterior."
-          }
-        },
-        "required": ["source", "approximation"],
         "additionalProperties": false
       }
     },

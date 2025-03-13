@@ -12,10 +12,10 @@ For example, in this model fragment:
 "alignment": {
   "distribution": {
     "type": "PhyloCTMC",
-    "generates": "ALIGNMENT",
+    "generates": "Alignment",
     "parameters": {
-      "tree": "tree",
-      "Q": "substitutionModel"
+      "tree": { "variable": "tree" },
+      "Q": { "variable": "substitutionModel" }
     }
   },
   "observedValue": [
@@ -26,9 +26,9 @@ For example, in this model fragment:
 "tree": {
   "distribution": {
     "type": "Yule",
-    "generates": "TREE",
+    "generates": "Tree",
     "parameters": {
-      "birthRate": "birthRateParam"
+      "birthRate": { "variable": "birthRateParam" }
     }
   }
 }
@@ -59,10 +59,10 @@ For example, if we have:
 
 ```json
 "substitutionModel": {
-  "function": "hky",
+  "function": "HKY",
   "arguments": {
-    "kappa": "kappaParam",
-    "baseFrequencies": "baseFreqParam"
+    "kappa": { "variable": "kappaParam" },
+    "baseFrequencies": { "variable": "baseFreqParam" }
   }
 }
 ```
@@ -105,9 +105,11 @@ For example:
 "kappaParam": {
   "distribution": {
     "type": "LogNormal",
-    "generates": "REAL",
-    "meanlog": 1.0,
-    "sdlog": 0.5
+    "generates": "Real",
+    "parameters": {
+      "meanlog": 1.0,
+      "sdlog": 0.5
+    }
   }
 }
 ```
@@ -123,7 +125,7 @@ For example:
 ```json
 "constraints": [
   {
-    "type": "lessThan",
+    "type": "LessThan",
     "left": "deathRateParam",
     "right": "birthRateParam"
   }

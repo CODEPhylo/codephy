@@ -77,9 +77,9 @@ public class StandardDistributionsMapper {
     private void createNormalDistribution(String name, String generates, JsonNode distNode) throws Exception {
         JsonNode paramsNode = distNode.path("parameters");
         
-        // Extract parameters
+        // Extract parameters with updated parameter names
         double mean = Utils.extractNumericValue(paramsNode, "mean");
-        double sigma = Utils.extractNumericValue(paramsNode, "sigma");
+        double sd = Utils.extractNumericValue(paramsNode, "sd"); // Changed from "sigma"
         
         // Create parameter
         RealParameter parameter = new RealParameter();
@@ -102,11 +102,11 @@ public class StandardDistributionsMapper {
         RealParameter meanParam = new RealParameter();
         meanParam.initByName("value", Double.toString(mean));
         
-        RealParameter sigmaParam = new RealParameter();
-        sigmaParam.initByName("value", Double.toString(sigma));
+        RealParameter sdParam = new RealParameter(); // Changed variable name
+        sdParam.initByName("value", Double.toString(sd));
         
         Normal normal = new Normal();
-        normal.initByName("mean", meanParam, "sigma", sigmaParam);
+        normal.initByName("mean", meanParam, "sigma", sdParam); // BEAST2 API still uses "sigma"
         
         Prior prior = new Prior();
         prior.setID(name + ".prior");
@@ -122,9 +122,9 @@ public class StandardDistributionsMapper {
     private void createLogNormalDistribution(String name, String generates, JsonNode distNode) throws Exception {
         JsonNode paramsNode = distNode.path("parameters");
         
-        // Extract parameters
-        double m = Utils.extractNumericValue(paramsNode, "m");
-        double s = Utils.extractNumericValue(paramsNode, "s");
+        // Extract parameters with updated parameter names
+        double meanlog = Utils.extractNumericValue(paramsNode, "meanlog"); // Changed from "m"
+        double sdlog = Utils.extractNumericValue(paramsNode, "sdlog"); // Changed from "s"
         
         // Create parameter (start with median value)
         RealParameter parameter = new RealParameter();
@@ -135,25 +135,26 @@ public class StandardDistributionsMapper {
         if (dimension > 1) {
             // Create a vector parameter with the same value repeated
             List<Double> values = new ArrayList<>();
-            double medianValue = Math.exp(m);  // Median of log-normal is exp(m)
+            double medianValue = Math.exp(meanlog);  // Median of log-normal is exp(meanlog)
             for (int i = 0; i < dimension; i++) {
                 values.add(medianValue);
             }
             parameter.initByName("value", values);
         } else {
-            double medianValue = Math.exp(m);  // Median of log-normal is exp(m)
+            double medianValue = Math.exp(meanlog);  // Median of log-normal is exp(meanlog)
             parameter.initByName("value", Double.toString(medianValue));
         }
         
         // Create LogNormal distribution prior
-        RealParameter mParam = new RealParameter();
-        mParam.initByName("value", Double.toString(m));
+        RealParameter meanlogParam = new RealParameter(); // Changed variable name
+        meanlogParam.initByName("value", Double.toString(meanlog));
         
-        RealParameter sParam = new RealParameter();
-        sParam.initByName("value", Double.toString(s));
+        RealParameter sdlogParam = new RealParameter(); // Changed variable name
+        sdlogParam.initByName("value", Double.toString(sdlog));
         
         LogNormalDistributionModel logNormal = new LogNormalDistributionModel();
-        logNormal.initByName("M", mParam, "S", sParam, "meanInRealSpace", false);
+        logNormal.initByName("M", meanlogParam, "S", sdlogParam, "meanInRealSpace", false);
+        // BEAST2 API still uses "M" and "S"
         
         Prior prior = new Prior();
         prior.setID(name + ".prior");
@@ -169,9 +170,9 @@ public class StandardDistributionsMapper {
     private void createGammaDistribution(String name, String generates, JsonNode distNode) throws Exception {
         JsonNode paramsNode = distNode.path("parameters");
         
-        // Extract parameters
-        double alpha = Utils.extractNumericValue(paramsNode, "alpha");
-        double beta = Utils.extractNumericValue(paramsNode, "beta");
+        // Extract parameters with updated parameter names
+        double shape = Utils.extractNumericValue(paramsNode, "shape"); // Changed from "alpha"
+        double rate = Utils.extractNumericValue(paramsNode, "rate"); // Changed from "beta"
         
         // Create parameter (start with mean value)
         RealParameter parameter = new RealParameter();
@@ -182,25 +183,26 @@ public class StandardDistributionsMapper {
         if (dimension > 1) {
             // Create a vector parameter with the same value repeated
             List<Double> values = new ArrayList<>();
-            double meanValue = alpha / beta;  // Mean of gamma is alpha/beta
+            double meanValue = shape / rate;  // Mean of gamma is shape/rate
             for (int i = 0; i < dimension; i++) {
                 values.add(meanValue);
             }
             parameter.initByName("value", values);
         } else {
-            double meanValue = alpha / beta;  // Mean of gamma is alpha/beta
+            double meanValue = shape / rate;  // Mean of gamma is shape/rate
             parameter.initByName("value", Double.toString(meanValue));
         }
         
         // Create Gamma distribution prior
-        RealParameter alphaParam = new RealParameter();
-        alphaParam.initByName("value", Double.toString(alpha));
+        RealParameter shapeParam = new RealParameter(); // Changed variable name
+        shapeParam.initByName("value", Double.toString(shape));
         
-        RealParameter betaParam = new RealParameter();
-        betaParam.initByName("value", Double.toString(beta));
+        RealParameter rateParam = new RealParameter(); // Changed variable name
+        rateParam.initByName("value", Double.toString(rate));
         
         Gamma gamma = new Gamma();
-        gamma.initByName("alpha", alphaParam, "beta", betaParam);
+        gamma.initByName("alpha", shapeParam, "beta", rateParam);
+        // BEAST2 API still uses "alpha" and "beta"
         
         Prior prior = new Prior();
         prior.setID(name + ".prior");
@@ -216,8 +218,8 @@ public class StandardDistributionsMapper {
     private void createExponentialDistribution(String name, String generates, JsonNode distNode) throws Exception {
         JsonNode paramsNode = distNode.path("parameters");
         
-        // Extract parameters
-        double lambda = Utils.extractNumericValue(paramsNode, "lambda");
+        // Extract parameters with updated parameter names
+        double rate = Utils.extractNumericValue(paramsNode, "rate"); // Changed from "lambda"
         
         // Create parameter (start with mean value)
         RealParameter parameter = new RealParameter();
@@ -228,22 +230,23 @@ public class StandardDistributionsMapper {
         if (dimension > 1) {
             // Create a vector parameter with the same value repeated
             List<Double> values = new ArrayList<>();
-            double meanValue = 1.0 / lambda;  // Mean of exponential is 1/lambda
+            double meanValue = 1.0 / rate;  // Mean of exponential is 1/rate
             for (int i = 0; i < dimension; i++) {
                 values.add(meanValue);
             }
             parameter.initByName("value", values);
         } else {
-            double meanValue = 1.0 / lambda;  // Mean of exponential is 1/lambda
+            double meanValue = 1.0 / rate;  // Mean of exponential is 1/rate
             parameter.initByName("value", Double.toString(meanValue));
         }
         
         // Create Exponential distribution prior
-        RealParameter lambdaParam = new RealParameter();
-        lambdaParam.initByName("value", Double.toString(lambda));
+        RealParameter rateParam = new RealParameter(); // Changed variable name
+        rateParam.initByName("value", Double.toString(rate));
         
         Exponential exponential = new Exponential();
-        exponential.initByName("mean", lambdaParam);
+        exponential.initByName("mean", rateParam);
+        // BEAST2 API uses "mean" parameter which is 1/rate
         
         Prior prior = new Prior();
         prior.setID(name + ".prior");

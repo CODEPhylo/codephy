@@ -6,7 +6,7 @@ import java.util.Map;
 
 /**
  * Coordinates the mapping of Codephy distributions to BEAST2 distribution objects.
- * This class delegates to specialized mappers based on distribution type.
+ * Updated to use separate Codephy and BEAST2 constants.
  */
 public class DistributionMapper {
 
@@ -32,8 +32,8 @@ public class DistributionMapper {
         // Determine if this is a tree distribution or a standard parameter distribution
         if (isTreeDistribution(distType)) {
             treeMapper.createTreeDistribution(name, distType, distNode);
-        } else if (distType.equals("PhyloCTMC")) {
-            treeMapper.createPhyloCTMC(name, distNode, varNode.path("observedValue"));
+        } else if (distType.equals(CodephyConstants.DIST_PHYLOCTMC)) {
+            treeMapper.createPhyloCTMC(name, distNode, varNode.path(CodephyConstants.FIELD_OBSERVED));
         } else {
             standardMapper.createStandardDistribution(name, distType, generates, distNode);
         }
@@ -45,7 +45,7 @@ public class DistributionMapper {
     public void connectDistribution(String name, String distType, JsonNode distNode) throws Exception {
         if (isTreeDistribution(distType)) {
             treeMapper.connectTreeDistribution(name, distType, distNode);
-        } else if (distType.equals("PhyloCTMC")) {
+        } else if (distType.equals(CodephyConstants.DIST_PHYLOCTMC)) {
             treeMapper.connectPhyloCTMC(name, distNode);
         }
         // Standard distributions don't need additional connection steps
@@ -55,9 +55,9 @@ public class DistributionMapper {
      * Determine if a distribution type is a tree distribution.
      */
     private boolean isTreeDistribution(String distType) {
-        return distType.equals("Yule") || 
-               distType.equals("BirthDeath") || 
-               distType.equals("Coalescent") ||
-               distType.equals("ConstrainedYule");
+        return distType.equals(CodephyConstants.DIST_YULE) || 
+               distType.equals(CodephyConstants.DIST_BIRTH_DEATH) || 
+               distType.equals(CodephyConstants.DIST_COALESCENT) ||
+               distType.equals(CodephyConstants.DIST_CONSTRAINED_YULE);
     }
 }

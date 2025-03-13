@@ -177,28 +177,60 @@ if [ -z "$SCRIPT_LOCATION" ]; then
     cd "$saveddir"
 fi
 
-# Find BEAST installation
+# Find BEAST 2.7.x installation
 if [ -z "$BEAST" ]; then
-    if [ -d "/Applications/BEAST ${beast2.version}" ]; then
-        BEAST="/Applications/BEAST ${beast2.version}"
-    elif [ -d "$HOME/Applications/BEAST ${beast2.version}" ]; then
-        BEAST="$HOME/Applications/BEAST ${beast2.version}"
-    elif [ -d "/usr/local/share/beast" ]; then
-        BEAST="/usr/local/share/beast"
+    # macOS Applications directory - look for any BEAST 2.7.x
+    if [ -d "/Applications" ]; then
+        BEAST_DIR=$(find /Applications -maxdepth 1 -type d -name "BEAST 2.7*" | sort -r | head -n 1)
+        if [ ! -z "$BEAST_DIR" ]; then
+            BEAST="$BEAST_DIR"
+        fi
+    fi
+    
+    # Home Applications directory - look for any BEAST 2.7.x
+    if [ -z "$BEAST" ] &amp;&amp; [ -d "$HOME/Applications" ]; then
+        BEAST_DIR=$(find $HOME/Applications -maxdepth 1 -type d -name "BEAST 2.7*" | sort -r | head -n 1)
+        if [ ! -z "$BEAST_DIR" ]; then
+            BEAST="$BEAST_DIR"
+        fi
+    fi
+    
+    # Check specific version as fallback
+    if [ -z "$BEAST" ]; then
+        if [ -d "/Applications/BEAST ${beast2.version}" ]; then
+            BEAST="/Applications/BEAST ${beast2.version}"
+        elif [ -d "$HOME/Applications/BEAST ${beast2.version}" ]; then
+            BEAST="$HOME/Applications/BEAST ${beast2.version}"
+        elif [ -d "/usr/local/share/beast" ]; then
+            # Check if this is a 2.7.x version in /usr/local/share/beast
+            if [ -f "/usr/local/share/beast/lib/version.xml" ]; then
+                VERSION=$(grep "2.7" "/usr/local/share/beast/lib/version.xml")
+                if [ ! -z "$VERSION" ]; then
+                    BEAST="/usr/local/share/beast"
+                fi
+            else
+                BEAST="/usr/local/share/beast"
+            fi
+        fi
+    fi
+    
+    # If we still can't find BEAST 2.7.x, try to fall back to bundled dependencies
+    if [ -z "$BEAST" ]; then
+        echo "BEAST 2.7.x installation not found. Using bundled dependencies."
+        BEAST="bundled"
     else
-        echo "Cannot find BEAST2 installation. Please set BEAST environment variable."
-        exit 1
+        echo "Found BEAST installation at: $BEAST"
     fi
 fi
 
 # Set Java
 JAVA="java"
-if [ -x "${BEAST}/jre/bin/java" ]; then
+if [ "$BEAST" != "bundled" ] &amp;&amp; [ -x "${BEAST}/jre/bin/java" ]; then
     JAVA="${BEAST}/jre/bin/java"
 fi
 
 # Run the application
-"$JAVA" -Dlauncher.wait.for.exit=true -Xss256m -Xmx4g -jar "${SCRIPT_LOCATION}/codephy-app-${project.version}.jar" $@
+"$JAVA" -Dlauncher.wait.for.exit=true -Xss256m -Xmx4g -jar "${SCRIPT_LOCATION}/codephy-app-${project.version}.jar" "$@"
 </echo>
                                 <chmod file="${project.build.directory}/codephyMapper" perm="755"/>
                             </target>

@@ -23,7 +23,7 @@ Here's a simple example of a random variable representing a parameter drawn from
 "kappaParam": {
   "distribution": {
     "type": "LogNormal",
-    "generates": "REAL",
+    "generates": "Real",
     "parameters": {
       "meanlog": 1.0,
       "sdlog": 0.5
@@ -40,7 +40,7 @@ Random variables can also represent more complex entities like phylogenetic tree
 "tree": {
   "distribution": {
     "type": "Yule",
-    "generates": "TREE",
+    "generates": "Tree",
     "parameters": {
       "birthRate": {
         "variable": "birthRateParam"
@@ -60,7 +60,7 @@ A key feature of Codephy is the ability to designate random variables as observe
 "alignment": {
   "distribution": {
     "type": "PhyloCTMC",
-    "generates": "ALIGNMENT",
+    "generates": "Alignment",
     "parameters": {
       "tree": {
         "variable": "tree"
@@ -86,14 +86,14 @@ The presence of `observedValue` indicates that the variable is conditioned on, r
 Deterministic functions take one or more variables as input and produce a new value through a deterministic transformation. In Codephy, a deterministic function has:
 
 - A unique name (the key in the `deterministicFunctions` object)
-- A function type (e.g., `"hky"`, `"gtr"`, `"vectorElement"`)
+- A function type (e.g., `"HKY"`, `"GTR"`, `"vectorElement"`)
 - Arguments that reference other variables or values
 
 Here's an example of a deterministic function representing an HKY substitution model:
 
 ```json
 "substitutionModel": {
-  "function": "hky",
+  "function": "HKY",
   "arguments": {
     "kappa": {
       "variable": "kappaParam"
@@ -175,23 +175,23 @@ The Codephy schema defines several standard distribution types, each with its ow
 
 | Distribution | Generates | Parameters | Description |
 |--------------|-----------|------------|-------------|
-| `LogNormal` | `REAL`, `REAL_VECTOR` | `meanlog`, `sdlog`, optional `dimension` | Log-normal distribution for continuous positive parameters |
-| `Normal` | `REAL`, `REAL_VECTOR` | `mean`, `sd`, optional `dimension` | Normal distribution for real-valued parameters |
-| `Gamma` | `REAL`, `REAL_VECTOR` | `shape`, `rate`, optional `dimension` | Gamma distribution for continuous positive parameters |
-| `Beta` | `REAL`, `REAL_VECTOR` | `alpha`, `beta`, optional `dimension` | Beta distribution for parameters in (0,1) |
-| `Exponential` | `REAL`, `REAL_VECTOR` | `rate`, optional `dimension` | Exponential distribution for rate parameters |
-| `Uniform` | `REAL`, `REAL_VECTOR` | `lower`, `upper`, optional `dimension` | Uniform distribution for bounded parameters |
-| `Dirichlet` | `REAL_VECTOR` | `alpha` (array) | Dirichlet distribution for vector parameters that sum to 1 |
-| `MultivariateNormal` | `REAL_VECTOR` | `mean` (array), `covariance` (matrix) | Multivariate normal for correlated parameters |
+| `LogNormal` | `Real`, `RealVector` | `meanlog`, `sdlog`, optional `dimension` | Log-normal distribution for continuous positive parameters |
+| `Normal` | `Real`, `RealVector` | `mean`, `sd`, optional `dimension` | Normal distribution for real-valued parameters |
+| `Gamma` | `Real`, `RealVector` | `shape`, `rate`, optional `dimension` | Gamma distribution for continuous positive parameters |
+| `Beta` | `Real`, `RealVector` | `alpha`, `beta`, optional `dimension` | Beta distribution for parameters in (0,1) |
+| `Exponential` | `Real`, `RealVector` | `rate`, optional `dimension` | Exponential distribution for rate parameters |
+| `Uniform` | `Real`, `RealVector` | `lower`, `upper`, optional `dimension` | Uniform distribution for bounded parameters |
+| `Dirichlet` | `Simplex` | `alpha` (array) | Dirichlet distribution for vector parameters that sum to 1 |
+| `MultivariateNormal` | `RealVector` | `mean` (array), `covariance` (matrix) | Multivariate normal for correlated parameters |
 | `Mixture` | Varies | `components`, `weights` | Mixture distribution for complex patterns |
-| `PosteriorApproximation` | `REAL`, `REAL_VECTOR` | `source`, `approximation` | Using results from previous studies as priors |
-| `Yule` | `TREE` | `birthRate` | Yule process for generating trees |
-| `BirthDeath` | `TREE` | `birthRate`, `deathRate`, optional `rootHeight` | Birth-Death process for trees |
-| `Coalescent` | `TREE` | `populationSize` | Coalescent process for trees |
-| `ConstrainedYule` | `TREE` | `birthRate`, optional constraints | Yule with topological constraints |
-| `PhyloCTMC` | `ALIGNMENT` | `tree`, `Q`, optional parameters | Continuous-time Markov chain for sequences |
+| `PosteriorApproximation` | `Real`, `RealVector` | `source`, `approximation` | Using results from previous studies as priors |
+| `Yule` | `Tree` | `birthRate` | Yule process for generating trees |
+| `BirthDeath` | `Tree` | `birthRate`, `deathRate`, optional `rootHeight` | Birth-Death process for trees |
+| `Coalescent` | `Tree` | `populationSize` | Coalescent process for trees |
+| `ConstrainedYule` | `Tree` | `birthRate`, optional constraints | Yule with topological constraints |
+| `PhyloCTMC` | `Alignment` | `tree`, `Q`, optional parameters | Continuous-time Markov chain for sequences |
 
-When `generates` is `REAL_VECTOR`, many distributions accept a `dimension` parameter to specify the number of IID samples.
+When `generates` is `RealVector`, many distributions accept a `dimension` parameter to specify the number of IID samples.
 
 More complex distributions (like mixtures and hierarchical priors) are covered in the Complex Priors section of the documentation.
 
@@ -199,11 +199,11 @@ More complex distributions (like mixtures and hierarchical priors) are covered i
 
 Codephy allows for explicit specification of constraints on parameters through the `constraints` section. These can include:
 
-- `lessThan`: Ensures one parameter is less than another
-- `greaterThan`: Ensures one parameter is greater than another
-- `equals`: Enforces equality between parameters or with a constant
-- `bounded`: Restricts a parameter to a specific range
-- `sumTo`: Requires a set of parameters to sum to a target value
+- `LessThan`: Ensures one parameter is less than another
+- `GreaterThan`: Ensures one parameter is greater than another
+- `Equals`: Enforces equality between parameters or with a constant
+- `Bounded`: Restricts a parameter to a specific range
+- `SumTo`: Requires a set of parameters to sum to a target value
 
 These constraints are important for many models in phylogenetics, such as ensuring rates sum to 1.0 or maintaining relative ordering of time points.
 

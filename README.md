@@ -12,6 +12,7 @@ It's aim is to foster interoperability and facilitate more efficient development
 - **Validation mechanisms**: Multi-layered approach to ensuring model correctness
 - **Complex prior support**: Hierarchical models, mixtures, and joint distributions
 - **Tooling Ecosystem**: Guidelines for interfaces that don't require writing raw JSON
+- **PhyloSpec compliant**: Follows PhyloSpec type system and naming conventions
 
 ## Documentation
 
@@ -55,7 +56,7 @@ To create a Codephy model:
     "kappaParam": {
       "distribution": {
         "type": "LogNormal",
-        "generates": "REAL",
+        "generates": "Real",
         "parameters": {
           "meanlog": 1.0,
           "sdlog": 0.5
@@ -65,7 +66,7 @@ To create a Codephy model:
     "tree": {
       "distribution": {
         "type": "Yule",
-        "generates": "TREE",
+        "generates": "Tree",
         "parameters": {
           "birthRate": { "variable": "birthRateParam" }
         }
@@ -74,7 +75,7 @@ To create a Codephy model:
   },
   "deterministicFunctions": {
     "substitutionModel": {
-      "function": "hky",
+      "function": "HKY",
       "arguments": {
         "kappa": { "variable": "kappaParam" },
         "baseFrequencies": { "variable": "baseFreqParam" }

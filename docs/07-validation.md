@@ -145,8 +145,8 @@ function hasCycle(node, graph, visited, recursionStack) {
 A more sophisticated level of validation involves type checking to ensure that the output type of a referenced variable is compatible with the expected input type where it is used. 
 For example:
 
-- A `REAL_VECTOR` output from a Dirichlet distribution is appropriate for base frequencies
-- A `TREE` output from a Yule process is required for the tree parameter of a PhyloCTMC
+- A `Simplex` output from a Dirichlet distribution is appropriate for base frequencies
+- A `Tree` output from a Yule process is required for the tree parameter of a PhyloCTMC
 
 Type validation can be integrated into inference engines or provided as separate tools:
 
@@ -185,8 +185,8 @@ function validateDistributionParameters(distribution, typeMap) {
     const treeRef = distribution.parameters.tree;
     const treeType = typeMap.get(treeRef);
     
-    if (treeType !== 'TREE') {
-      throw new Error(`PhyloCTMC expects a TREE but got ${treeType} for parameter 'tree'`);
+    if (treeType !== 'Tree') {
+      throw new Error(`PhyloCTMC expects a Tree but got ${treeType} for parameter 'tree'`);
     }
     
     // Check other parameters
@@ -197,9 +197,9 @@ function validateDistributionParameters(distribution, typeMap) {
 
 ### Validating vector outputs from standard distributions
 
-With the updated schema, standard distributions like LogNormal, Normal, Gamma, etc. can now generate `REAL_VECTOR` outputs when a dimension parameter is provided. Type checking should validate that:
+With the updated schema, standard distributions like LogNormal, Normal, Gamma, etc. can now generate `RealVector` outputs when a dimension parameter is provided. Type checking should validate that:
 
-1. When a standard distribution specifies `generates: "REAL_VECTOR"`, the required `dimension` parameter is present
+1. When a standard distribution specifies `generates: "RealVector"`, the required `dimension` parameter is present
 2. The `dimension` parameter is a positive integer or a reference to a variable/expression that produces one
 
 ```javascript
@@ -210,13 +210,13 @@ function validateVectorDistributions(distribution, varName) {
   ];
   
   if (standardDistributions.includes(distribution.type) && 
-      distribution.generates === 'REAL_VECTOR') {
+      distribution.generates === 'RealVector') {
     
     // Check that dimension parameter exists
     if (!distribution.parameters.dimension) {
       throw new Error(
         `Variable '${varName}' has distribution type '${distribution.type}' with ` +
-        `generates: 'REAL_VECTOR' but is missing required 'dimension' parameter`
+        `generates: 'RealVector' but is missing required 'dimension' parameter`
       );
     }
     
@@ -343,7 +343,7 @@ Inference engines should validate models before beginning the inference process,
 ```bash
 $ beast model.json
 Validating model...
-ERROR: PhyloCTMC distribution requires tree parameter to be a TREE, but 'myTree' is a REAL
+ERROR: PhyloCTMC distribution requires tree parameter to be a Tree, but 'myTree' is a Real
 Inference aborted due to validation errors.
 ```
 

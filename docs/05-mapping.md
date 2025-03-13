@@ -290,7 +290,7 @@ for (JsonNode constraintNode : json.get("constraints")) {
     String right = constraintNode.get("right").asText();
     
     switch (type) {
-        case "lessThan":
+        case "LessThan":
             constraints.add(new LessThanConstraint(
                 variables.get(left),
                 variables.get(right)
@@ -307,7 +307,7 @@ Special data types like trees and alignments often require custom parsing logic:
 
 ```java
 // Parse observed alignment
-if (varNode.has("observedValue") && dist.getGeneratesType().equals("ALIGNMENT")) {
+if (varNode.has("observedValue") && dist.getGeneratesType().equals("Alignment")) {
     JsonNode alignmentData = varNode.get("observedValue");
     Alignment alignment = new Alignment();
     
@@ -332,7 +332,7 @@ public BEASTModel convertToBEAST(CodephyModel codephyModel) {
     
     // Convert parameters
     for (RandomVariable var : codephyModel.getRandomVariables().values()) {
-        if (!var.hasObservedValue() && var.getDistribution().getGeneratesType().equals("REAL")) {
+        if (!var.hasObservedValue() && var.getDistribution().getGeneratesType().equals("Real")) {
             // Create BEAST parameter
             RealParameter param = new RealParameter();
             param.setID(var.getName());

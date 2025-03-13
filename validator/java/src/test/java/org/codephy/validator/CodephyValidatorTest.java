@@ -81,7 +81,7 @@ public class CodephyValidatorTest {
         ObjectNode kappaParam = randomVars.putObject("kappaParam");
         ObjectNode kappaDist = kappaParam.putObject("distribution");
         kappaDist.put("type", "LogNormal");
-        kappaDist.put("generates", "REAL");
+        kappaDist.put("generates", "Real");
         ObjectNode kappaParams = kappaDist.putObject("parameters");
         kappaParams.put("meanlog", 1.0);
         kappaParams.put("sdlog", 0.5);
@@ -90,7 +90,7 @@ public class CodephyValidatorTest {
         ObjectNode baseFreqParam = randomVars.putObject("baseFreqParam");
         ObjectNode baseFreqDist = baseFreqParam.putObject("distribution");
         baseFreqDist.put("type", "Dirichlet");
-        baseFreqDist.put("generates", "REAL_VECTOR");
+        baseFreqDist.put("generates", "Simplex");
         ObjectNode baseFreqParams = baseFreqDist.putObject("parameters");
         ArrayNode alpha = baseFreqParams.putArray("alpha");
         alpha.add(5).add(5).add(5).add(5);
@@ -99,7 +99,7 @@ public class CodephyValidatorTest {
         ObjectNode tree = randomVars.putObject("tree");
         ObjectNode treeDist = tree.putObject("distribution");
         treeDist.put("type", "Yule");
-        treeDist.put("generates", "TREE");
+        treeDist.put("generates", "Tree");
         ObjectNode treeParams = treeDist.putObject("parameters");
         treeParams.put("birthRate", 0.1);
         
@@ -124,7 +124,7 @@ public class CodephyValidatorTest {
         ObjectNode param1 = randomVars.putObject("param1");
         ObjectNode param1Dist = param1.putObject("distribution");
         param1Dist.put("type", "LogNormal");
-        param1Dist.put("generates", "REAL");
+        param1Dist.put("generates", "Real");
         ObjectNode param1Params = param1Dist.putObject("parameters");
         param1Params.put("meanlog", 1.0);
         param1Params.put("sdlog", 0.5);
@@ -175,7 +175,7 @@ public class CodephyValidatorTest {
         ObjectNode kappaParam = randomVars.putObject("kappaParam");
         ObjectNode kappaDist = kappaParam.putObject("distribution");
         kappaDist.put("type", "LogNormal");
-        kappaDist.put("generates", "REAL");
+        kappaDist.put("generates", "Real");
         ObjectNode kappaParams = kappaDist.putObject("parameters");
         kappaParams.put("meanlog", 1.0);
         kappaParams.put("sdlog", 0.5);
@@ -184,7 +184,7 @@ public class CodephyValidatorTest {
         ObjectNode tree = randomVars.putObject("tree");
         ObjectNode treeDist = tree.putObject("distribution");
         treeDist.put("type", "Yule");
-        treeDist.put("generates", "TREE");
+        treeDist.put("generates", "Tree");
         ObjectNode treeParams = treeDist.putObject("parameters");
         treeParams.put("birthRate", "nonExistentParam");
         
@@ -219,7 +219,7 @@ public class CodephyValidatorTest {
         ObjectNode birthRateParam = randomVars.putObject("birthRateParam");
         ObjectNode birthRateDist = birthRateParam.putObject("distribution");
         birthRateDist.put("type", "LogNormal");
-        birthRateDist.put("generates", "REAL");
+        birthRateDist.put("generates", "Real");
         ObjectNode birthRateParams = birthRateDist.putObject("parameters");
         birthRateParams.put("meanlog", 1.0);
         birthRateParams.put("sdlog", 0.5);
@@ -228,7 +228,7 @@ public class CodephyValidatorTest {
         ObjectNode deathRateParam = randomVars.putObject("deathRateParam");
         ObjectNode deathRateDist = deathRateParam.putObject("distribution");
         deathRateDist.put("type", "LogNormal");
-        deathRateDist.put("generates", "REAL");
+        deathRateDist.put("generates", "Real");
         ObjectNode deathRateParams = deathRateDist.putObject("parameters");
         deathRateParams.put("meanlog", 0.0);
         deathRateParams.put("sdlog", 0.5);
@@ -271,7 +271,7 @@ public class CodephyValidatorTest {
         ObjectNode kappaParam = randomVars.putObject("kappaParam");
         ObjectNode kappaDist = kappaParam.putObject("distribution");
         kappaDist.put("type", "LogNormal");
-        kappaDist.put("generates", "REAL_VECTOR");  // Wrong, should be REAL
+        kappaDist.put("generates", "RealVector");  // Wrong for a scalar without dimension
         ObjectNode kappaParams = kappaDist.putObject("parameters");
         kappaParams.put("meanlog", 1.0);
         kappaParams.put("sdlog", 0.5);
@@ -286,7 +286,7 @@ public class CodephyValidatorTest {
         boolean foundTypeError = false;
         for (String error : errors) {
             if (error.contains("distribution type") && error.contains("LogNormal") &&
-                error.contains("generates type") && error.contains("REAL_VECTOR")) {
+                error.contains("generates type") && error.contains("RealVector")) {
                 foundTypeError = true;
                 break;
             }
@@ -308,7 +308,7 @@ public class CodephyValidatorTest {
         ObjectNode kappaParam = randomVars.putObject("kappaParam");
         ObjectNode kappaDist = kappaParam.putObject("distribution");
         kappaDist.put("type", "LogNormal");
-        kappaDist.put("generates", "REAL");
+        kappaDist.put("generates", "Real");
         ObjectNode kappaParams = kappaDist.putObject("parameters");
         kappaParams.put("meanlog", 1.0);
         kappaParams.put("sdlog", 0.5);
@@ -317,7 +317,7 @@ public class CodephyValidatorTest {
         ObjectNode baseFreqParam = randomVars.putObject("baseFreqParam");
         ObjectNode baseFreqDist = baseFreqParam.putObject("distribution");
         baseFreqDist.put("type", "Dirichlet");
-        baseFreqDist.put("generates", "REAL_VECTOR");
+        baseFreqDist.put("generates", "Simplex");
         ObjectNode baseFreqParams = baseFreqDist.putObject("parameters");
         ArrayNode alpha = baseFreqParams.putArray("alpha");
         alpha.add(5).add(5).add(5).add(5);
@@ -326,7 +326,7 @@ public class CodephyValidatorTest {
         ObjectNode birthRateParam = randomVars.putObject("birthRateParam");
         ObjectNode birthRateDist = birthRateParam.putObject("distribution");
         birthRateDist.put("type", "LogNormal");
-        birthRateDist.put("generates", "REAL");
+        birthRateDist.put("generates", "Real");
         ObjectNode birthRateParams = birthRateDist.putObject("parameters");
         birthRateParams.put("meanlog", 1.0);
         birthRateParams.put("sdlog", 0.5);
@@ -335,7 +335,7 @@ public class CodephyValidatorTest {
         ObjectNode tree = randomVars.putObject("tree");
         ObjectNode treeDist = tree.putObject("distribution");
         treeDist.put("type", "Yule");
-        treeDist.put("generates", "TREE");
+        treeDist.put("generates", "Tree");
         ObjectNode treeParams = treeDist.putObject("parameters");
 
         ObjectNode birthRateRef = treeParams.putObject("birthRate");
@@ -345,7 +345,7 @@ public class CodephyValidatorTest {
         ObjectNode alignment = randomVars.putObject("alignment");
         ObjectNode alignmentDist = alignment.putObject("distribution");
         alignmentDist.put("type", "PhyloCTMC");
-        alignmentDist.put("generates", "ALIGNMENT");
+        alignmentDist.put("generates", "Alignment");
         ObjectNode alignmentParams = alignmentDist.putObject("parameters");
         
         ObjectNode treeRef = alignmentParams.putObject("tree");
@@ -372,7 +372,7 @@ public class CodephyValidatorTest {
         // Deterministic function for substitution model
         ObjectNode detFuncs = model.putObject("deterministicFunctions");
         ObjectNode substModel = detFuncs.putObject("substitutionModel");
-        substModel.put("function", "hky");
+        substModel.put("function", "HKY");
         ObjectNode substArgs = substModel.putObject("arguments");
         // Use proper parameterValue for function arguments:
         ObjectNode argKappa = substArgs.putObject("kappa");
